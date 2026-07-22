@@ -56,45 +56,44 @@ export async function getDashboardData(range: DashboardRange = {}) {
     })
     .filter((t) => t.count > 0);
 
-  // 학과별
-  const deptMap = new Map<string, number>();
-  for (const r of inRange) {
+  // 학과별 (전년 대비): 최근 12개월(올해) vs 그 이전 12개월(전년), 기간필터와 무관
+  const now = new Date();
+  const winStart = new Date(now.getFullYear(), now.getMonth() - 11, 1).getTime();
+  const prevStart = new Date(now.getFullYear(), now.getMonth() - 23, 1).getTime();
+  const deptThis = new Map<string, number>();
+  const deptPrev = new Map<string, number>();
+  for (const r of allRows) {
+    const t = new Date(r.createdAt).getTime();
     const d = r.department ?? "기타";
-    deptMap.set(d, (deptMap.get(d) ?? 0) + 1);
+    if (t >= winStart) deptThis.set(d, (deptThis.get(d) ?? 0) + 1);
+    else if (t >= prevStart) deptPrev.set(d, (deptPrev.get(d) ?? 0) + 1);
   }
-  const byDepartment = Array.from(deptMap.entries())
-    .map(([label, count]) => ({ label, count }))
-    .sort((a, b) => b.count - a.count);
+  const deptNames = new Set<string>([...deptThis.keys(), ...deptPrev.keys()]);
+  const byDepartment = Array.from(deptNames)
+    .map((label) => ({ label, thisYear: deptThis.get(label) ?? 0, lastYear: deptPrev.get(label) ?? 0 }))
+    .sort((a, b) => b.thisYear - a.thisYear || b.lastYear - a.lastYear);
 
   // 상태별
   const byStatus = Object.entries(REQUEST_STATUS_LABELS)
     .map(([key, label]) => ({ key, label, count: inRange.filter((r) => r.status === key).length }))
     .filter((s) => s.count > 0);
 
-  // 월별 추이: 기간이 있으면 그 구간, 없으면 최근 12개월
-  const now = new Date();
-  let monthsStart: Date;
-  let monthsEnd: Date;
-  if (range.from || range.to) {
-    monthsStart = new Date((range.from ?? new Date(now.getFullYear(), now.getMonth() - 11, 1)));
-    monthsEnd = new Date(range.to ?? now);
-  } else {
-    monthsStart = new Date(now.getFullYear(), now.getMonth() - 11, 1);
-    monthsEnd = now;
+  // 월별 추이 (전년 대비): 최근 12개월 각각에 대해 올해 count + 작년 동월 prevCount
+  const monthKey = (d: Date) => d.getFullYear() * 12 + d.getMonth();
+  const monthCount = new Map<number, number>();
+  for (const r of allRows) {
+    const k = monthKey(new Date(r.createdAt));
+    monthCount.set(k, (monthCount.get(k) ?? 0) + 1);
   }
-  const monthly: { month: string; count: number }[] = [];
-  let cur = new Date(monthsStart.getFullYear(), monthsStart.getMonth(), 1);
-  const end = new Date(monthsEnd.getFullYear(), monthsEnd.getMonth(), 1);
-  let guard = 0;
-  while (cur <= end && guard < 36) {
-    const label = `${cur.getFullYear()}.${String(cur.getMonth() + 1).padStart(2, "0")}`;
-    const count = inRange.filter((r) => {
-      const c = new Date(r.createdAt);
-      return c.getFullYear() === cur.getFullYear() && c.getMonth() === cur.getMonth();
-    }).length;
-    monthly.push({ month: label, count });
-    cur = new Date(cur.getFullYear(), cur.getMonth() + 1, 1);
-    guard++;
+  const monthly: { month: string; count: number; prevCount: number }[] = [];
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const k = monthKey(d);
+    monthly.push({
+      month: `${String(d.getMonth() + 1).padStart(2, "0")}월`,
+      count: monthCount.get(k) ?? 0,
+      prevCount: monthCount.get(k - 12) ?? 0,
+    });
   }
 
   // 오늘 배포 예정 (기간과 무관하게 항상 표시)
@@ -160,6 +159,28 @@ function serialize(r: any): DashboardRequest {
     expectedPublishDate: r.expectedPublishDate,
     updatedAt: r.updatedAt,
   };
+}
+
+// 최상위급 학술지 (연구성과 저널 상세)
+export const TOP_TIER_JOURNALS = ["Nature", "Science", "Cell"];
+
+export async function getJournalStats() {
+  const rows = await prisma.researchDetail.findMany({
+    where: { journalName: { not: null } },
+    select: { journalName: true, pressRequest: { select: { department: true } } },
+  });
+  const map = new Map<string, number>();
+  for (const r of rows) {
+    const j = (r.journalName ?? "").trim();
+    if (!j) continue;
+    map.set(j, (map.get(j) ?? 0) + 1);
+  }
+  const all = Array.from(map.entries())
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count);
+  const topTier = TOP_TIER_JOURNALS.map((name) => ({ name, count: map.get(name) ?? 0 }));
+  const topTierTotal = topTier.reduce((s, t) => s + t.count, 0);
+  return { all, topTier, topTierTotal, totalResearch: rows.length };
 }
 
 // KPI 카드 → 현황 목록 버킷 정의

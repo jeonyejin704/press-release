@@ -83,6 +83,35 @@ const COMMITTEES = ["국가과학기술자문회의", "한국연구재단 전문
 const ACTIVITIES = ["국제 학회 기조강연", "정부 정책 자문", "해외 대학 초청 강연", "산업체 기술 자문"];
 const MISC = ["국제 대학평가 상위권 진입", "신규 연구센터 개소", "글로벌 기업과 산학협력 협약", "장학기금 유치"];
 
+// 게재 저널 (최상위급 Science/Nature/Cell 포함). 가중치로 빈도 조절.
+const JOURNALS: [string, number][] = [
+  ["Nature", 5],
+  ["Science", 5],
+  ["Cell", 4],
+  ["Nature Communications", 9],
+  ["Nature Energy", 4],
+  ["Nature Materials", 4],
+  ["PNAS", 8],
+  ["JACS", 8],
+  ["Advanced Materials", 9],
+  ["Physical Review Letters", 8],
+  ["Angewandte Chemie", 6],
+  ["ACS Nano", 6],
+  ["Advanced Energy Materials", 5],
+  ["Chemical Science", 5],
+  ["IEEE TPAMI", 4],
+  ["Nucleic Acids Research", 3],
+];
+
+// 계절성: 특정 시기(3월·9월 학기 초 등)에 신청이 몰리도록 월별 가중치
+function seasonalWeight(month1to12: number): number {
+  const map: Record<number, number> = {
+    1: 0.6, 2: 0.8, 3: 1.9, 4: 1.4, 5: 1.1, 6: 0.9,
+    7: 0.6, 8: 0.7, 9: 2.0, 10: 1.5, 11: 1.1, 12: 0.8,
+  };
+  return map[month1to12] ?? 1;
+}
+
 function titleFor(type: RequestType, dept: string) {
   const name = pick(NAMES);
   const title = pick(TITLES);
@@ -102,15 +131,20 @@ function titleFor(type: RequestType, dept: string) {
   }
 }
 
-// createdAt: 최근 12개월, 최근일수록 가중치 높게(상승 추세)
+// createdAt: 최근 24개월. 전년 대비(YoY) 비교가 가능하도록 2년치를 생성하되,
+// 올해로 갈수록 증가(성장 추세) + 3월·9월 등 계절성 반영.
 function randomCreatedAt() {
   const now = new Date();
-  const monthPairs: [number, number][] = [];
-  for (let i = 0; i < 12; i++) monthPairs.push([i, (i + 1) * (i + 1)]); // 최근일수록 급증
-  const mi = weighted(monthPairs); // 0=11개월전 ... 11=이번달
-  const base = new Date(now.getFullYear(), now.getMonth() - (11 - mi), 1);
-  const day = randInt(1, 28);
-  base.setDate(day);
+  const pairs: [number, number][] = [];
+  for (let i = 0; i < 24; i++) {
+    // i=0 → 23개월 전, i=23 → 이번 달
+    const d = new Date(now.getFullYear(), now.getMonth() - (23 - i), 1);
+    const growth = 1 + i * 0.09; // 최근일수록 증가
+    pairs.push([i, growth * seasonalWeight(d.getMonth() + 1)]);
+  }
+  const mi = weighted(pairs);
+  const base = new Date(now.getFullYear(), now.getMonth() - (23 - mi), 1);
+  base.setDate(randInt(1, 28));
   base.setHours(randInt(8, 19), randInt(0, 59));
   if (base > now) base.setTime(now.getTime() - randInt(1, 5) * 3600000);
   return base;
@@ -243,9 +277,9 @@ async function main() {
     },
   });
 
-  // ── Bulk ~248건 ────────────────────────────────────────────────────────────
-  const TARGET = 250;
-  let created = 2;
+  // ── Bulk ~318건 (24개월치, YoY 비교용) ──────────────────────────────────────
+  const TARGET = 320;
+  const created = 2;
   for (let i = created; i < TARGET; i++) {
     const type = weighted(TYPE_WEIGHTS);
     const status = weighted(STATUS_WEIGHTS);
@@ -275,6 +309,10 @@ async function main() {
         completedAt,
         distributedAt,
         expectedPublishDate,
+        // 연구성과는 저널명을 부여해 '연구성과 저널 게재 현황' 집계가 가능하도록
+        ...(type === "RESEARCH"
+          ? { research: { create: { journalName: weighted(JOURNALS) } } }
+          : {}),
       },
     });
   }

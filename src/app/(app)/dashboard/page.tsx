@@ -131,17 +131,30 @@ export default async function DashboardPage({
       {/* ── 2행: 그래프 ──────────────────────────── */}
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="p-5">
-          <SectionTitle>월별 신청 추이</SectionTitle>
+          <SectionTitle>
+            월별 신청 추이
+            <span className="ml-1 text-xs font-normal text-pgray-400">올해 · 전년 동월 비교</span>
+          </SectionTitle>
           <MonthlyTrend data={d.monthly} />
         </Card>
         <Card className="p-5">
-          <SectionTitle>홍보 유형별 비율</SectionTitle>
-          {d.byType.length ? <TypePie data={d.byType} /> : <EmptyState title="데이터 없음" />}
+          <div className="mb-2 flex items-center justify-between">
+            <div className="text-base font-bold text-pgray-900">홍보 유형별 비율</div>
+            <Link href="/dashboard/journals" className="text-xs font-medium text-brand-600 hover:underline">
+              연구성과 저널 상세 →
+            </Link>
+          </div>
+          {d.byType.length ? (
+            <TypePie data={d.byType} linkMap={{ RESEARCH: "/dashboard/journals" }} />
+          ) : (
+            <EmptyState title="데이터 없음" />
+          )}
+          <p className="mt-1 text-center text-[11px] text-pgray-400">‘연구성과’ 조각을 클릭하면 저널 게재 현황을 볼 수 있어요.</p>
         </Card>
         <Card className="p-5">
           <SectionTitle>
             학과별 신청 건수
-            <span className="ml-1 text-xs font-normal text-pgray-400">최다: {d.metrics.topDept}</span>
+            <span className="ml-1 text-xs font-normal text-pgray-400">올해 · 전년 비교 (최다: {d.metrics.topDept})</span>
           </SectionTitle>
           {d.byDepartment.length ? <DepartmentBar data={d.byDepartment} /> : <EmptyState title="데이터 없음" />}
         </Card>
