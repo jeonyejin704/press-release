@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser, isManager } from "@/lib/session";
-import { getDashboardData } from "@/lib/dashboard";
+import { getDashboardData, BUCKETS, type DashboardRequest } from "@/lib/dashboard";
 import { prisma } from "@/lib/prisma";
 import { Card, StatusBadge, Badge, EmptyState } from "@/components/ui";
 import { MonthlyTrend, TypePie, DepartmentBar } from "@/components/DashboardCharts";
@@ -10,35 +10,133 @@ import { REQUEST_TYPE_LABELS, type RequestType } from "@/lib/enums";
 
 export const dynamic = "force-dynamic";
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | undefined>>;
+}) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   if (!isManager(user)) redirect("/requests");
 
-  const d = await getDashboardData();
+  const sp = await searchParams;
+  const from = sp.from ? new Date(sp.from) : undefined;
+  const to = sp.to ? new Date(sp.to) : undefined;
+  const bucket = sp.bucket && BUCKETS[sp.bucket] ? sp.bucket : undefined;
+
+  const d = await getDashboardData({ from, to });
   const [news, keywords] = await Promise.all([
     prisma.newsItem.findMany({ orderBy: { publishedAt: "desc" }, take: 30 }),
     prisma.newsKeyword.findMany({ where: { active: true }, orderBy: { createdAt: "asc" } }),
   ]);
 
+  // 기간 파라미터를 보존한 KPI 링크 생성
+  const rangeQS = new URLSearchParams();
+  if (sp.from) rangeQS.set("from", sp.from);
+  if (sp.to) rangeQS.set("to", sp.to);
+  const kpiHref = (key: string) => {
+    const qs = new URLSearchParams(rangeQS);
+    qs.set("bucket", key);
+    return `/dashboard?${qs.toString()}`;
+  };
+
+  const bucketList = bucket
+    ? d.requests.filter((r) => BUCKETS[bucket].match(r.status))
+    : [];
+
+  const kpis = [
+    { key: "total", label: "전체 신청", value: d.metrics.total, tone: "brand" },
+    { key: "inProgress", label: "진행 중", value: d.metrics.inProgress, tone: "accent" },
+    { key: "completed", label: "최종 완료", value: d.metrics.completed, tone: "green" },
+    { key: "distributed", label: "배포 완료", value: d.metrics.distributed, tone: "green" },
+    { key: "onHold", label: "보류", value: d.metrics.onHold, tone: "gray" },
+    { key: "rejected", label: "반려", value: d.metrics.rejected, tone: "gray" },
+  ];
+
+  const rangeLabel = sp.from || sp.to ? `${sp.from ?? "처음"} ~ ${sp.to ?? "오늘"}` : "전체 기간";
+
   return (
     <div className="space-y-7">
-      <div>
-        <h1 className="text-2xl font-extrabold tracking-tight text-pgray-900">홍보 현황 대시보드</h1>
-        <p className="mt-0.5 text-sm text-pgray-500">
-          안녕하세요, {user.name}님. 오늘 배포 예정 보도자료와 전체 현황을 확인하세요.
-        </p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-extrabold tracking-tight text-pgray-900">
+            <span className="text-brand-700">POSTECH</span> 언론 홍보 현황
+          </h1>
+          <p className="mt-0.5 text-sm text-pgray-500">
+            안녕하세요, {user.name}님. 기간: <span className="font-semibold text-pgray-700">{rangeLabel}</span>
+          </p>
+        </div>
+
+        {/* 기간 설정 */}
+        <form method="get" className="flex flex-wrap items-end gap-2">
+          {bucket && <input type="hidden" name="bucket" value={bucket} />}
+          <label className="text-xs text-pgray-500">
+            시작
+            <input
+              type="date"
+              name="from"
+              defaultValue={sp.from ?? ""}
+              className="ml-1 rounded-lg border border-pgray-300 px-2 py-1.5 text-sm"
+            />
+          </label>
+          <label className="text-xs text-pgray-500">
+            종료
+            <input
+              type="date"
+              name="to"
+              defaultValue={sp.to ?? ""}
+              className="ml-1 rounded-lg border border-pgray-300 px-2 py-1.5 text-sm"
+            />
+          </label>
+          <button className="rounded-lg bg-brand-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-brand-700">
+            기간 적용
+          </button>
+          {(sp.from || sp.to) && (
+            <Link href="/dashboard" className="rounded-lg px-3 py-1.5 text-sm text-pgray-500 hover:bg-pgray-100">
+              초기화
+            </Link>
+          )}
+        </form>
       </div>
 
-      {/* ── 1행: KPI ─────────────────────────────── */}
+      {/* ── 1행: KPI (클릭 시 목록) ─────────────── */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
-        <Kpi label="전체 신청" value={d.metrics.total} tone="brand" />
-        <Kpi label="진행 중" value={d.metrics.inProgress} tone="accent" />
-        <Kpi label="최종 완료" value={d.metrics.completed} tone="green" />
-        <Kpi label="배포 완료" value={d.metrics.distributed} tone="green" />
-        <Kpi label="보류" value={d.metrics.onHold} tone="gray" />
-        <Kpi label="반려" value={d.metrics.rejected} tone="gray" />
+        {kpis.map((k) => (
+          <Link key={k.key} href={kpiHref(k.key)}>
+            <Card
+              className={`p-4 transition hover:-translate-y-0.5 hover:shadow-md ${
+                bucket === k.key ? "ring-2 ring-brand-500" : ""
+              }`}
+            >
+              <div className="text-sm text-pgray-500">{k.label}</div>
+              <div className={`mt-1 text-3xl font-extrabold ${TONE[k.tone]}`}>{k.value}</div>
+              <div className="mt-1 text-[11px] text-pgray-400">클릭하여 목록 보기</div>
+            </Card>
+          </Link>
+        ))}
       </div>
+
+      {/* 선택 현황 목록 */}
+      {bucket && (
+        <Card className="border-t-4 border-t-brand-600 p-5">
+          <div className="mb-3 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-lg font-extrabold text-pgray-900">
+                {BUCKETS[bucket].label} 목록
+              </span>
+              <Badge color="bg-brand-100 text-brand-700">{bucketList.length}건</Badge>
+              <span className="text-xs text-pgray-400">· {rangeLabel}</span>
+            </div>
+            <Link
+              href={`/dashboard${rangeQS.toString() ? `?${rangeQS.toString()}` : ""}`}
+              className="text-sm text-pgray-500 hover:underline"
+            >
+              닫기 ✕
+            </Link>
+          </div>
+          <BucketTable items={bucketList} />
+        </Card>
+      )}
 
       {/* ── 2행: 그래프 ──────────────────────────── */}
       <div className="grid gap-4 lg:grid-cols-3">
@@ -59,7 +157,7 @@ export default async function DashboardPage() {
         </Card>
       </div>
 
-      {/* ── 3행: 오늘 배포 보도자료 + 관련 기사 ──────── */}
+      {/* ── 3행: 오늘 배포 + 관련 기사 ───────────── */}
       <div className="grid gap-4 lg:grid-cols-2">
         <Card className="border-t-4 border-t-brand-600 p-5">
           <div className="mb-3 flex items-center gap-2">
@@ -99,12 +197,12 @@ export default async function DashboardPage() {
         </Card>
       </div>
 
-      {/* 처리 대기 요약 (보조) */}
+      {/* 처리 대기 요약 */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <MiniList title="자료 보완 필요" items={d.lists.materialNeeded} />
         <MiniList title="연구진 검토 대기" items={d.lists.applicantReview} />
         <MiniList title="영문본 검토 대기" items={d.lists.englishReview} />
-        <MiniList title="장기 미처리 (7일+)" items={d.lists.stale} />
+        <MiniList title="장기 미처리 (14일+)" items={d.lists.stale} />
       </div>
     </div>
   );
@@ -117,21 +215,53 @@ const TONE: Record<string, string> = {
   gray: "text-pgray-500",
 };
 
-function Kpi({ label, value, tone }: { label: string; value: number; tone: string }) {
-  return (
-    <Card className="p-4">
-      <div className="text-sm text-pgray-500">{label}</div>
-      <div className={`mt-1 text-3xl font-extrabold ${TONE[tone]}`}>{value}</div>
-    </Card>
-  );
-}
-
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return <div className="mb-2 text-base font-bold text-pgray-900">{children}</div>;
 }
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-function MiniList({ title, items }: { title: string; items: any[] }) {
+function fmt(d: string | null) {
+  return d ? new Date(d).toLocaleDateString("ko-KR", { year: "2-digit", month: "2-digit", day: "2-digit" }) : "-";
+}
+
+function BucketTable({ items }: { items: DashboardRequest[] }) {
+  if (items.length === 0) return <EmptyState title="해당 현황의 신청이 없습니다." />;
+  return (
+    <div className="max-h-[28rem] overflow-auto rounded-lg border border-pgray-100">
+      <table className="w-full text-sm">
+        <thead className="sticky top-0 bg-pgray-50 text-left text-xs uppercase text-pgray-500">
+          <tr>
+            <th className="px-3 py-2">제목</th>
+            <th className="px-3 py-2">유형</th>
+            <th className="px-3 py-2">학과</th>
+            <th className="px-3 py-2">신청자</th>
+            <th className="px-3 py-2">상태</th>
+            <th className="px-3 py-2">신청일</th>
+            <th className="px-3 py-2">예상 배포일</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-pgray-100">
+          {items.map((r) => (
+            <tr key={r.id} className="hover:bg-pgray-50">
+              <td className="px-3 py-2">
+                <Link href={`/requests/${r.id}`} className="font-medium text-brand-700 hover:underline">
+                  {r.title}
+                </Link>
+              </td>
+              <td className="px-3 py-2 text-pgray-600">{REQUEST_TYPE_LABELS[r.type]}</td>
+              <td className="px-3 py-2 text-pgray-600">{r.department ?? "-"}</td>
+              <td className="px-3 py-2 text-pgray-600">{r.applicantName}</td>
+              <td className="px-3 py-2"><StatusBadge status={r.status} /></td>
+              <td className="px-3 py-2 text-pgray-400">{fmt(r.createdAt)}</td>
+              <td className="px-3 py-2 text-pgray-400">{fmt(r.expectedPublishDate)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function MiniList({ title, items }: { title: string; items: DashboardRequest[] }) {
   return (
     <Card className="p-3">
       <div className="mb-1.5 flex items-center justify-between">

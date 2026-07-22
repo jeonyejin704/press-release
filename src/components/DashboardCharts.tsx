@@ -32,9 +32,34 @@ export function MonthlyTrend({ data }: { data: { month: string; count: number }[
   );
 }
 
+const RAD = Math.PI / 180;
+function renderTypeLabel(props: any) {
+  const { cx, cy, midAngle, innerRadius, outerRadius, percent, name } = props;
+  if (!percent) return null;
+  const rIn = innerRadius + (outerRadius - innerRadius) * 0.5;
+  const xIn = cx + rIn * Math.cos(-midAngle * RAD);
+  const yIn = cy + rIn * Math.sin(-midAngle * RAD);
+  const rOut = outerRadius + 20;
+  const xOut = cx + rOut * Math.cos(-midAngle * RAD);
+  const yOut = cy + rOut * Math.sin(-midAngle * RAD);
+  const anchor = xOut >= cx ? "start" : "end";
+  return (
+    <g>
+      {/* 비율 % — 그래프(도넛) 안에 표기, 흰색 볼드 */}
+      <text x={xIn} y={yIn} fill="#ffffff" textAnchor="middle" dominantBaseline="central" fontSize={15} fontWeight={800}>
+        {(percent * 100).toFixed(0)}%
+      </text>
+      {/* 유형명 — 바깥쪽, 크고 볼드 */}
+      <text x={xOut} y={yOut} fill="#2a2827" textAnchor={anchor} dominantBaseline="central" fontSize={14} fontWeight={800}>
+        {name}
+      </text>
+    </g>
+  );
+}
+
 export function TypePie({ data }: { data: { label: string; count: number }[] }) {
   return (
-    <ResponsiveContainer width="100%" height={220}>
+    <ResponsiveContainer width="100%" height={260}>
       <PieChart>
         <Pie
           data={data}
@@ -42,18 +67,18 @@ export function TypePie({ data }: { data: { label: string; count: number }[] }) 
           nameKey="label"
           cx="50%"
           cy="50%"
-          innerRadius={45}
-          outerRadius={80}
+          innerRadius={48}
+          outerRadius={82}
           paddingAngle={2}
-          label={(e: any) => `${e.label} ${e.count}`}
+          label={renderTypeLabel}
           labelLine={false}
-          fontSize={11}
+          isAnimationActive={false}
         >
           {data.map((_, i) => (
             <Cell key={i} fill={COLORS[i % COLORS.length]} />
           ))}
         </Pie>
-        <Tooltip />
+        <Tooltip formatter={(v: any, n: any) => [`${v}건`, n]} />
       </PieChart>
     </ResponsiveContainer>
   );

@@ -7,32 +7,58 @@ import {
   type RequestStatus,
 } from "@/lib/enums";
 
-export async function getDashboardData() {
-  const all = await prisma.pressRequest.findMany({
+export type DashboardRange = { from?: Date; to?: Date };
+
+export type DashboardRequest = {
+  id: string;
+  title: string;
+  type: RequestType;
+  status: string;
+  department: string | null;
+  applicantName: string;
+  createdAt: string;
+  submittedAt: string | null;
+  expectedPublishDate: string | null;
+  updatedAt: string;
+};
+
+export async function getDashboardData(range: DashboardRange = {}) {
+  const allRows = await prisma.pressRequest.findMany({
     include: {
       applicant: { select: { name: true } },
       releases: { where: { language: "KO" }, select: { subtitle: true } },
     },
-    orderBy: { updatedAt: "desc" },
+    orderBy: { createdAt: "desc" },
   });
 
-  const total = all.length;
-  const inProgress = all.filter((r) => ACTIVE_STATUSES.includes(r.status as RequestStatus)).length;
-  const completed = all.filter((r) => r.status === "FINAL_COMPLETED").length;
-  const distributed = all.filter((r) => r.status === "DISTRIBUTED").length;
-  const onHold = all.filter((r) => r.status === "ON_HOLD").length;
-  const rejected = all.filter((r) => r.status === "REJECTED").length;
+  // 기간 필터 (createdAt 기준). to는 해당 일자의 끝까지 포함.
+  const fromT = range.from ? range.from.getTime() : -Infinity;
+  const toT = range.to ? range.to.getTime() + 86400000 - 1 : Infinity;
+  const inRange = allRows.filter((r) => {
+    const t = new Date(r.createdAt).getTime();
+    return t >= fromT && t <= toT;
+  });
 
-  // By type
-  const byType = Object.entries(REQUEST_TYPE_LABELS).map(([key, label]) => ({
-    key,
-    label,
-    count: all.filter((r) => r.type === key).length,
-  }));
+  const has = (arr: RequestStatus[], s: string) => arr.includes(s as RequestStatus);
 
-  // By department
+  const total = inRange.length;
+  const inProgress = inRange.filter((r) => has(ACTIVE_STATUSES, r.status)).length;
+  const completed = inRange.filter((r) => r.status === "FINAL_COMPLETED").length;
+  const distributed = inRange.filter((r) => r.status === "DISTRIBUTED").length;
+  const onHold = inRange.filter((r) => r.status === "ON_HOLD").length;
+  const rejected = inRange.filter((r) => r.status === "REJECTED").length;
+
+  // 유형별 (비율은 차트에서 Recharts가 계산 — 'percent' 키는 충돌하므로 사용하지 않음)
+  const byType = Object.entries(REQUEST_TYPE_LABELS)
+    .map(([key, label]) => {
+      const count = inRange.filter((r) => r.type === key).length;
+      return { key, label, count, ratio: total ? Math.round((count / total) * 100) : 0 };
+    })
+    .filter((t) => t.count > 0);
+
+  // 학과별
   const deptMap = new Map<string, number>();
-  for (const r of all) {
+  for (const r of inRange) {
     const d = r.department ?? "기타";
     deptMap.set(d, (deptMap.get(d) ?? 0) + 1);
   }
@@ -40,46 +66,41 @@ export async function getDashboardData() {
     .map(([label, count]) => ({ label, count }))
     .sort((a, b) => b.count - a.count);
 
-  // By status
+  // 상태별
   const byStatus = Object.entries(REQUEST_STATUS_LABELS)
-    .map(([key, label]) => ({ key, label, count: all.filter((r) => r.status === key).length }))
+    .map(([key, label]) => ({ key, label, count: inRange.filter((r) => r.status === key).length }))
     .filter((s) => s.count > 0);
 
-  // Monthly trend (last 6 months) based on createdAt
+  // 월별 추이: 기간이 있으면 그 구간, 없으면 최근 12개월
   const now = new Date();
+  let monthsStart: Date;
+  let monthsEnd: Date;
+  if (range.from || range.to) {
+    monthsStart = new Date((range.from ?? new Date(now.getFullYear(), now.getMonth() - 11, 1)));
+    monthsEnd = new Date(range.to ?? now);
+  } else {
+    monthsStart = new Date(now.getFullYear(), now.getMonth() - 11, 1);
+    monthsEnd = now;
+  }
   const monthly: { month: string; count: number }[] = [];
-  for (let i = 5; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const label = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, "0")}`;
-    const count = all.filter((r) => {
+  let cur = new Date(monthsStart.getFullYear(), monthsStart.getMonth(), 1);
+  const end = new Date(monthsEnd.getFullYear(), monthsEnd.getMonth(), 1);
+  let guard = 0;
+  while (cur <= end && guard < 36) {
+    const label = `${cur.getFullYear()}.${String(cur.getMonth() + 1).padStart(2, "0")}`;
+    const count = inRange.filter((r) => {
       const c = new Date(r.createdAt);
-      return c.getFullYear() === d.getFullYear() && c.getMonth() === d.getMonth();
+      return c.getFullYear() === cur.getFullYear() && c.getMonth() === cur.getMonth();
     }).length;
     monthly.push({ month: label, count });
+    cur = new Date(cur.getFullYear(), cur.getMonth() + 1, 1);
+    guard++;
   }
 
-  // Task lists for "today"
-  const materialNeeded = all.filter((r) => r.status === "MATERIAL_REQUESTED");
-  const applicantReview = all.filter((r) => r.status === "APPLICANT_REVIEW");
-  const englishReview = all.filter(
-    (r) => r.status === "ENGLISH_DRAFTING" || r.status === "ENGLISH_REVIEW_REQUESTED",
-  );
-  const soon = all.filter((r) => {
-    if (!r.expectedPublishDate) return false;
-    const days = (new Date(r.expectedPublishDate).getTime() - now.getTime()) / 86400000;
-    return days >= 0 && days <= 7;
-  });
-  const stale = all.filter((r) => {
-    if (!ACTIVE_STATUSES.includes(r.status as RequestStatus)) return false;
-    const days = (now.getTime() - new Date(r.updatedAt).getTime()) / 86400000;
-    return days > 7;
-  });
-  const recent = all.slice(0, 6);
-
-  // 오늘 배포 예정 보도자료 (예상 배포일이 오늘)
+  // 오늘 배포 예정 (기간과 무관하게 항상 표시)
   const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const endOfDay = new Date(startOfDay.getTime() + 86400000);
-  const todayRelease = all
+  const todayRelease = allRows
     .filter((r) => {
       if (!r.expectedPublishDate) return false;
       const d = new Date(r.expectedPublishDate);
@@ -94,36 +115,59 @@ export async function getDashboardData() {
       status: r.status,
     }));
 
+  // 처리 대기 목록 (기간과 무관)
+  const materialNeeded = allRows.filter((r) => r.status === "MATERIAL_REQUESTED");
+  const applicantReview = allRows.filter((r) => r.status === "APPLICANT_REVIEW");
+  const englishReview = allRows.filter(
+    (r) => r.status === "ENGLISH_DRAFTING" || r.status === "ENGLISH_REVIEW_REQUESTED",
+  );
+  const stale = allRows.filter((r) => {
+    if (!has(ACTIVE_STATUSES, r.status)) return false;
+    const days = (now.getTime() - new Date(r.updatedAt).getTime()) / 86400000;
+    return days > 14;
+  });
+
   const topDept = byDepartment[0]?.label ?? "-";
 
   return {
     metrics: { total, inProgress, completed, distributed, onHold, rejected, topDept },
-    byType: byType.filter((t) => t.count > 0),
+    byType,
     byDepartment,
     byStatus,
     monthly,
     todayRelease,
+    requests: inRange.map(serialize), // 기간 필터된 전체(현황 목록용)
     lists: {
-      materialNeeded: serialize(materialNeeded),
-      applicantReview: serialize(applicantReview),
-      englishReview: serialize(englishReview),
-      soon: serialize(soon),
-      stale: serialize(stale),
-      recent: serialize(recent),
+      materialNeeded: materialNeeded.map(serialize),
+      applicantReview: applicantReview.map(serialize),
+      englishReview: englishReview.map(serialize),
+      stale: stale.map(serialize),
     },
   };
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-function serialize(rows: any[]) {
-  return rows.map((r) => ({
+function serialize(r: any): DashboardRequest {
+  return {
     id: r.id,
     title: r.title,
     type: r.type as RequestType,
     status: r.status,
     department: r.department,
     applicantName: r.applicant?.name ?? "",
+    createdAt: r.createdAt,
+    submittedAt: r.submittedAt,
     expectedPublishDate: r.expectedPublishDate,
     updatedAt: r.updatedAt,
-  }));
+  };
 }
+
+// KPI 카드 → 현황 목록 버킷 정의
+export const BUCKETS: Record<string, { label: string; match: (s: string) => boolean }> = {
+  total: { label: "전체 신청", match: () => true },
+  inProgress: { label: "진행 중", match: (s) => ACTIVE_STATUSES.includes(s as RequestStatus) },
+  completed: { label: "최종 완료", match: (s) => s === "FINAL_COMPLETED" },
+  distributed: { label: "배포 완료", match: (s) => s === "DISTRIBUTED" },
+  onHold: { label: "보류", match: (s) => s === "ON_HOLD" },
+  rejected: { label: "반려", match: (s) => s === "REJECTED" },
+};
