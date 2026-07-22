@@ -12,7 +12,8 @@ const CONTACT = "문의사항이 있을 경우 홍보팀(054-279-2416)으로 연
 
 // 유형별 '보도자료 초안 양식' 다운로드 파일 (public/templates 에 심어 둠).
 export const TEMPLATE_FILES: Record<RequestType, string> = {
-  RESEARCH: "/templates/연구성과_보도자료_초안양식.md",
+  // 연구성과: 홍보팀이 제공한 실제 HWP 샘플 양식
+  RESEARCH: "/templates/연구성과_보도자료_샘플.hwp",
   AWARD: "/templates/수상성과_보도자료_초안양식.md",
   APPOINTMENT: "/templates/위원선임_보도자료_초안양식.md",
   PERSONAL_NEWS: "/templates/동정_보도자료_초안양식.md",

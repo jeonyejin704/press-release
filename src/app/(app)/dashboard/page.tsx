@@ -46,7 +46,6 @@ export default async function DashboardPage({
 
   const kpis = [
     { key: "total", label: "전체 신청", value: d.metrics.total, tone: "brandDark" },
-    { key: "inProgress", label: "진행 중", value: d.metrics.inProgress, tone: "accent" },
     { key: "completed", label: "최종 완료", value: d.metrics.completed, tone: "brand" },
     { key: "distributed", label: "배포 완료", value: d.metrics.distributed, tone: "brandDark" },
     { key: "onHold", label: "보류", value: d.metrics.onHold, tone: "gray" },
@@ -90,7 +89,7 @@ export default async function DashboardPage({
       </div>
 
       {/* ── 1행: KPI (클릭 시 목록) ─────────────── */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
         {kpis.map((k) => (
           <Link key={k.key} href={kpiHref(k.key)}>
             <Card
@@ -160,45 +159,41 @@ export default async function DashboardPage({
         </Card>
       </div>
 
-      {/* ── 3행: 오늘 배포 + 관련 기사 ───────────── */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="border-t-4 border-t-brand-600 p-5">
-          <div className="mb-3 flex items-center gap-2">
-            <span className="text-lg font-extrabold text-pgray-900">📣 오늘 배포 보도자료</span>
-            <Badge color="bg-brand-100 text-brand-700">{d.todayRelease.length}건</Badge>
+      {/* ── 3행: 오늘 배포 보도자료 (전체 너비 한 줄) ─────────── */}
+      <Card className="border-t-4 border-t-brand-600 p-5">
+        <div className="mb-3 flex items-center gap-2">
+          <span className="text-lg font-extrabold text-pgray-900">📣 오늘 배포 보도자료</span>
+          <Badge color="bg-brand-100 text-brand-700">{d.todayRelease.length}건</Badge>
+        </div>
+        {d.todayRelease.length === 0 ? (
+          <p className="py-6 text-center text-sm text-pgray-400">오늘 배포 예정인 보도자료가 없습니다.</p>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {d.todayRelease.map((r) => (
+              <Link
+                key={r.id}
+                href={`/requests/${r.id}`}
+                className="block rounded-xl border border-pgray-100 bg-pgray-50 px-4 py-3 transition hover:border-brand-200 hover:bg-brand-50"
+              >
+                <Badge color="bg-white text-pgray-500">{REQUEST_TYPE_LABELS[r.type]}</Badge>
+                <div className="mt-1.5 text-base font-bold text-pgray-900">{r.title}</div>
+                {r.subtitle && <p className="mt-0.5 text-sm text-pgray-500">{r.subtitle}</p>}
+              </Link>
+            ))}
           </div>
-          {d.todayRelease.length === 0 ? (
-            <p className="py-6 text-center text-sm text-pgray-400">오늘 배포 예정인 보도자료가 없습니다.</p>
-          ) : (
-            <ul className="space-y-2">
-              {d.todayRelease.map((r) => (
-                <li key={r.id}>
-                  <Link
-                    href={`/requests/${r.id}`}
-                    className="block rounded-lg border border-pgray-100 bg-pgray-50 px-4 py-3 transition hover:border-brand-200 hover:bg-brand-50"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Badge color="bg-white text-pgray-500">{REQUEST_TYPE_LABELS[r.type]}</Badge>
-                      <span className="text-base font-bold text-pgray-900">{r.title}</span>
-                    </div>
-                    {r.subtitle && <p className="mt-0.5 text-sm text-pgray-500">{r.subtitle}</p>}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
+        )}
+      </Card>
 
-        <Card className="p-5">
-          <div className="mb-1 flex items-center justify-between">
-            <SectionTitle>관련 기사 · 뉴스 모니터링</SectionTitle>
-            <Link href="/news" className="text-xs font-medium text-brand-600 hover:underline">
-              전체 보기 →
-            </Link>
-          </div>
-          <DashboardNews news={JSON.parse(JSON.stringify(news))} keywords={keywords.map((k) => k.keyword)} />
-        </Card>
-      </div>
+      {/* ── 4행: 관련 기사 · 뉴스 모니터링 (전체 너비) ─────────── */}
+      <Card className="p-5">
+        <div className="mb-1 flex items-center justify-between">
+          <SectionTitle>관련 기사 · 뉴스 모니터링</SectionTitle>
+          <Link href="/news" className="text-xs font-medium text-brand-600 hover:underline">
+            전체 보기 →
+          </Link>
+        </div>
+        <DashboardNews news={JSON.parse(JSON.stringify(news))} keywords={keywords.map((k) => k.keyword)} />
+      </Card>
 
       {/* 처리 대기 요약 */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
