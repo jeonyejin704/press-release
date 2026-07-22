@@ -1,0 +1,20 @@
+{
+  "name": "PressFlow",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:22",
+  "forwardPorts": [3000],
+  "portsAttributes": {
+    "3000": {
+      "label": "PressFlow",
+      "onAutoForward": "openBrowser"
+    }
+  },
+  "postCreateCommand": "npm install && cp -n .env.example .env && npm run setup",
+  "postAttachCommand": {
+    "dev-server": "npm run dev"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": ["Prisma.prisma"]
+    }
+  }
+}

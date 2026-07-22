@@ -75,6 +75,17 @@ cp .env.example .env      # 기본값(SQLite/Mock)으로 바로 실행 가능
 
 실제 AI 초안을 쓰려면: `AI_PROVIDER=anthropic`, `ANTHROPIC_API_KEY=sk-...` 설정.
 
+### 태블릿·설치 없이 실행: GitHub Codespaces
+
+로컬에 Node 설치가 어렵거나 태블릿에서 보려면 GitHub Codespaces를 사용하세요.
+저장소에 `.devcontainer/devcontainer.json`가 포함되어 있어 **의존성 설치 → DB 시드 → 개발 서버 실행**이 자동으로 진행됩니다.
+
+1. GitHub에서 저장소 열기 → `claude/university-press-management-5m38qi` 브랜치 선택
+2. 녹색 **Code** 버튼 → **Codespaces** 탭 → **Create codespace on …**
+3. 최초 준비(2~3분) 후 3000번 포트가 자동 포워딩되어 앱이 열립니다.
+   - 자동으로 안 열리면 하단 **PORTS** 탭에서 3000번 포트의 지구본(🌐) 아이콘을 누르세요.
+4. 데모 계정(비밀번호 없음)으로 로그인합니다.
+
 ## 7. 개발 서버 실행
 
 ```bash
