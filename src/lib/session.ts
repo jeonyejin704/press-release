@@ -13,6 +13,8 @@ import type { Role } from "@/lib/enums";
 // ---------------------------------------------------------------------------
 
 const COOKIE_NAME = "pf_session";
+const ROLE_COOKIE = "pf_role";
+export { COOKIE_NAME, ROLE_COOKIE };
 
 export type SessionUser = {
   id: string;
@@ -22,19 +24,22 @@ export type SessionUser = {
   department: string | null;
 };
 
-export async function login(userId: string) {
+export async function login(userId: string, role?: string) {
   const store = await cookies();
-  store.set(COOKIE_NAME, userId, {
-    httpOnly: true,
-    sameSite: "lax",
+  const opts = {
+    sameSite: "lax" as const,
     path: "/",
     maxAge: 60 * 60 * 24 * 7,
-  });
+  };
+  store.set(COOKIE_NAME, userId, { httpOnly: true, ...opts });
+  // Non-sensitive role hint so edge middleware can route by role without a DB call.
+  if (role) store.set(ROLE_COOKIE, role, { httpOnly: false, ...opts });
 }
 
 export async function logout() {
   const store = await cookies();
   store.delete(COOKIE_NAME);
+  store.delete(ROLE_COOKIE);
 }
 
 export async function getCurrentUser(): Promise<SessionUser | null> {

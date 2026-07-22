@@ -16,6 +16,6 @@ export async function POST(req: Request) {
       { status: 401 },
     );
   }
-  await login(user.id);
+  await login(user.id, user.role);
   return NextResponse.json({ id: user.id, name: user.name, role: user.role });
 }
