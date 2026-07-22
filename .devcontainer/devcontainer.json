@@ -8,9 +8,9 @@
       "onAutoForward": "openBrowser"
     }
   },
-  "postCreateCommand": "npm install && cp -n .env.example .env && npm run setup",
+  "postCreateCommand": "npm install && cp -n .env.example .env && npm run setup && chmod +x .devcontainer/start.sh",
   "postAttachCommand": {
-    "dev-server": "npm run dev"
+    "dev-server": "bash .devcontainer/start.sh"
   },
   "customizations": {
     "vscode": {
