@@ -9,7 +9,10 @@ import {
 
 export async function getDashboardData() {
   const all = await prisma.pressRequest.findMany({
-    include: { applicant: { select: { name: true } } },
+    include: {
+      applicant: { select: { name: true } },
+      releases: { where: { language: "KO" }, select: { subtitle: true } },
+    },
     orderBy: { updatedAt: "desc" },
   });
 
@@ -73,6 +76,24 @@ export async function getDashboardData() {
   });
   const recent = all.slice(0, 6);
 
+  // 오늘 배포 예정 보도자료 (예상 배포일이 오늘)
+  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const endOfDay = new Date(startOfDay.getTime() + 86400000);
+  const todayRelease = all
+    .filter((r) => {
+      if (!r.expectedPublishDate) return false;
+      const d = new Date(r.expectedPublishDate);
+      return d >= startOfDay && d < endOfDay;
+    })
+    .map((r) => ({
+      id: r.id,
+      title: r.title,
+      subtitle: r.releases[0]?.subtitle ?? "",
+      type: r.type as RequestType,
+      department: r.department,
+      status: r.status,
+    }));
+
   const topDept = byDepartment[0]?.label ?? "-";
 
   return {
@@ -81,6 +102,7 @@ export async function getDashboardData() {
     byDepartment,
     byStatus,
     monthly,
+    todayRelease,
     lists: {
       materialNeeded: serialize(materialNeeded),
       applicantReview: serialize(applicantReview),

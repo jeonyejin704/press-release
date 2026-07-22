@@ -27,7 +27,7 @@ export type CommonRequestInput = z.infer<typeof commonRequestSchema>;
 export const DETAIL_DATE_FIELDS: Record<string, string[]> = {
   RESEARCH: ["publishedDate"],
   AWARD: ["ceremonyDate"],
-  APPOINTMENT: [],
+  APPOINTMENT: ["termStart", "termEnd"],
   PERSONAL_NEWS: ["occurredAt"],
   EVENT: [],
   OTHER: [],
@@ -57,7 +57,7 @@ export const DETAIL_FIELDS: Record<string, string[]> = {
   ],
   APPOINTMENT: [
     "appointeeName", "department", "title", "committeeName", "organization", "term",
-    "roleDescription", "appointmentBackground", "expectedImpact",
+    "termStart", "termEnd", "roleDescription", "appointmentBackground", "expectedImpact",
   ],
   PERSONAL_NEWS: [
     "subjectName", "department", "title", "newsType", "content", "occurredAt", "location",

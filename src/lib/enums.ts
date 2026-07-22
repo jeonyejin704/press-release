@@ -86,6 +86,7 @@ export const LANGUAGES = ["KO", "EN"] as const;
 export type Language = (typeof LANGUAGES)[number];
 
 export const ATTACHMENT_TYPES = [
+  "PRESS_RELEASE_DRAFT",
   "RESEARCHER_PHOTO",
   "REPRESENTATIVE_IMAGE",
   "RESEARCH_IMAGE",
@@ -99,6 +100,7 @@ export const ATTACHMENT_TYPES = [
 export type AttachmentType = (typeof ATTACHMENT_TYPES)[number];
 
 export const ATTACHMENT_TYPE_LABELS: Record<AttachmentType, string> = {
+  PRESS_RELEASE_DRAFT: "보도자료 초안",
   RESEARCHER_PHOTO: "연구진 사진",
   REPRESENTATIVE_IMAGE: "대표 이미지",
   RESEARCH_IMAGE: "연구 관련 이미지",

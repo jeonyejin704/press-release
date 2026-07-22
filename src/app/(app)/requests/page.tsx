@@ -45,11 +45,12 @@ export default async function RequestsPage({
     <div>
       <div className="mb-5 flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-slate-800">
+          <h1 className="text-2xl font-extrabold tracking-tight text-pgray-900">
             {manager ? "전체 신청 관리" : "내 홍보 신청"}
           </h1>
-          <p className="text-sm text-slate-500">
-            총 {requests.length}건{manager ? " (전체)" : ""}
+          <p className="text-sm text-pgray-500">
+            총 <span className="font-semibold text-brand-600">{requests.length}</span>건
+            {manager ? " (전체)" : ""}
           </p>
         </div>
         <LinkButton href="/requests/new">＋ 새 홍보 신청</LinkButton>

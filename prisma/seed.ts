@@ -116,8 +116,9 @@ async function main() {
         isUrgent: i === 0,
         publicDisclosureAllowed: true,
         submittedAt: new Date(Date.now() - (i + 1) * 86400000),
+        // KOREAN_FINAL_CONFIRMED 건은 '오늘 배포 예정'으로 표시 (대시보드 데모용)
         expectedPublishDate:
-          s.status === "KOREAN_FINAL_CONFIRMED" ? new Date(Date.now() + 3 * 86400000) : null,
+          s.status === "KOREAN_FINAL_CONFIRMED" ? new Date() : null,
         research: {
           create: {
             paperTitleKo: s.paperKo,

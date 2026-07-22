@@ -34,13 +34,13 @@ export function ReleaseEditor({
 
   const label = language === "KO" ? "국문 보도자료" : "영문 보도자료";
 
-  async function startEnglish() {
+  async function startRelease() {
     setBusy(true);
     try {
       const res = await fetch(`/api/press-requests/${pressRequestId}/releases`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ language: "EN" }),
+        body: JSON.stringify({ language }),
       });
       if (res.ok) onChange();
     } finally {
@@ -95,17 +95,16 @@ export function ReleaseEditor({
   if (!release) {
     return (
       <Card className="p-5">
-        <div className="flex items-center justify-between">
-          <div className="text-sm font-semibold text-slate-700">{label}</div>
-          {language === "EN" ? (
-            <Button variant="secondary" disabled={busy} onClick={startEnglish}>
-              영문본 작성 시작
-            </Button>
-          ) : (
-            <span className="text-sm text-slate-400">
-              연구성과는 AI 초안 생성 시 자동 생성됩니다.
-            </span>
-          )}
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <div className="text-sm font-semibold text-slate-700">{label}</div>
+            <div className="text-xs text-slate-400">
+              업로드된 초안 파일을 바탕으로 {label} 최종본을 직접 작성할 수 있습니다. (선택)
+            </div>
+          </div>
+          <Button variant="secondary" disabled={busy} onClick={startRelease}>
+            {label} 작성 시작
+          </Button>
         </div>
       </Card>
     );

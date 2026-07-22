@@ -15,7 +15,8 @@ import {
   Cell,
 } from "recharts";
 
-const COLORS = ["#1f4a8c", "#2b60ad", "#4a80c9", "#7fa9de", "#b3cded", "#16305c"];
+// POSTECH palette: Red, Orange, Gray + tints
+const COLORS = ["#a61955", "#f6a700", "#7a7772", "#cd527d", "#fcc74c", "#b7b4b0"];
 
 export function MonthlyTrend({ data }: { data: { month: string; count: number }[] }) {
   return (
@@ -25,7 +26,7 @@ export function MonthlyTrend({ data }: { data: { month: string; count: number }[
         <XAxis dataKey="month" tick={{ fontSize: 12 }} />
         <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
         <Tooltip />
-        <Line type="monotone" dataKey="count" stroke="#1f4a8c" strokeWidth={2} dot={{ r: 3 }} name="신청 수" />
+        <Line type="monotone" dataKey="count" stroke="#a61955" strokeWidth={2.5} dot={{ r: 3 }} name="신청 수" />
       </LineChart>
     </ResponsiveContainer>
   );
@@ -66,7 +67,7 @@ export function DepartmentBar({ data }: { data: { label: string; count: number }
         <XAxis type="number" allowDecimals={false} tick={{ fontSize: 12 }} />
         <YAxis type="category" dataKey="label" width={80} tick={{ fontSize: 12 }} />
         <Tooltip />
-        <Bar dataKey="count" fill="#2b60ad" radius={[0, 4, 4, 0]} name="신청 수" />
+        <Bar dataKey="count" fill="#a61955" radius={[0, 4, 4, 0]} name="신청 수" />
       </BarChart>
     </ResponsiveContainer>
   );

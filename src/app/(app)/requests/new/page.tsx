@@ -1,15 +1,7 @@
 import Link from "next/link";
 import { Card } from "@/components/ui";
 import { REQUEST_TYPES, REQUEST_TYPE_LABELS } from "@/lib/enums";
-
-const TYPE_DESC: Record<string, string> = {
-  RESEARCH: "논문 초록을 입력하면 AI가 보도자료 초안을 생성합니다.",
-  AWARD: "교원·연구자의 수상 소식을 알립니다.",
-  APPOINTMENT: "위원회·자문기구 위원 선임 소식을 알립니다.",
-  PERSONAL_NEWS: "구성원의 동정(강연, 방문 등) 소식을 알립니다.",
-  EVENT: "행사 및 이벤트를 육하원칙으로 홍보합니다.",
-  OTHER: "기타 대학 소식을 자유롭게 신청합니다.",
-};
+import { REQUEST_GUIDE } from "@/lib/formConfig";
 
 const TYPE_ICON: Record<string, string> = {
   RESEARCH: "🔬",
@@ -23,17 +15,34 @@ const TYPE_ICON: Record<string, string> = {
 export default function NewRequestPage() {
   return (
     <div>
-      <h1 className="mb-1 text-xl font-bold text-slate-800">새 홍보 신청</h1>
-      <p className="mb-5 text-sm text-slate-500">홍보 유형을 선택하세요.</p>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <h1 className="text-2xl font-extrabold tracking-tight text-pgray-900">새 홍보 신청</h1>
+      <p className="mt-1 text-sm text-pgray-500">홍보 유형을 선택하세요. 각 유형의 안내를 먼저 확인해 주세요.</p>
+
+      {/* 공통 안내 배너 */}
+      <Card className="mt-4 border-accent-200 bg-accent-50 p-4">
+        <p className="text-sm leading-relaxed text-pgray-700">
+          <span className="font-bold text-brand-700">보도자료 초안은 신청자가 직접 작성해 업로드</span>합니다.
+          각 유형 화면에서 <span className="font-semibold">‘보도자료 초안 양식’</span>을 내려받아 작성하신 뒤,
+          파일로 업로드해 주세요. 홍보팀이 이를 검토·보완하여 최종본을 완성합니다.
+          <br />
+          <span className="text-pgray-500">문의사항이 있을 경우 홍보팀(054-279-2416)으로 연락 부탁드립니다.</span>
+        </p>
+      </Card>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {REQUEST_TYPES.map((t) => (
-          <Link key={t} href={`/requests/new/${t.toLowerCase()}`}>
-            <Card className="h-full p-5 transition hover:border-brand-300 hover:shadow-md">
-              <div className="text-3xl">{TYPE_ICON[t]}</div>
-              <div className="mt-2 font-semibold text-slate-800">
-                {REQUEST_TYPE_LABELS[t]}
+          <Link key={t} href={`/requests/new/${t.toLowerCase()}`} className="group">
+            <Card className="flex h-full flex-col p-5 transition group-hover:-translate-y-0.5 group-hover:border-brand-300 group-hover:shadow-md">
+              <div className="flex items-center gap-2">
+                <span className="text-3xl">{TYPE_ICON[t]}</span>
+                <span className="text-lg font-bold text-pgray-900">{REQUEST_TYPE_LABELS[t]}</span>
               </div>
-              <div className="mt-1 text-sm text-slate-500">{TYPE_DESC[t]}</div>
+              <p className="mt-2 line-clamp-4 text-sm leading-relaxed text-pgray-500">
+                {REQUEST_GUIDE[t]}
+              </p>
+              <span className="mt-3 text-sm font-semibold text-brand-600 group-hover:text-brand-700">
+                신청하기 →
+              </span>
             </Card>
           </Link>
         ))}

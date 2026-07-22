@@ -22,6 +22,7 @@ import {
   type RequestStatus,
   type Role,
 } from "@/lib/enums";
+import { TEMPLATE_FILES } from "@/lib/formConfig";
 import { ReleaseEditor } from "./ReleaseEditor";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -70,15 +71,6 @@ export function RequestDetail({
     if (r) router.refresh();
   }
 
-  async function generateAI() {
-    const r = await api("/api/ai/generate-press-release", "POST", { pressRequestId: data.id });
-    if (r) {
-      alert(`AI 초안이 생성되었습니다. (provider: ${r.provider})`);
-      setTab("보도자료");
-      router.refresh();
-    }
-  }
-
   const visibleTabs = TABS.filter((t) => t !== "체크리스트" || isManager);
 
   return (
@@ -92,8 +84,8 @@ export function RequestDetail({
           ← 목록으로
         </button>
         <div className="flex flex-wrap items-center gap-2">
-          <h1 className="text-xl font-bold text-slate-800">{data.title}</h1>
-          {data.isUrgent && <Badge color="bg-red-100 text-red-700">긴급</Badge>}
+          <h1 className="text-2xl font-extrabold tracking-tight text-pgray-900">{data.title}</h1>
+          {data.isUrgent && <Badge color="bg-brand-100 text-brand-700">긴급</Badge>}
         </div>
         <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-slate-500">
           <StatusBadge status={data.status} />
@@ -125,12 +117,6 @@ export function RequestDetail({
           {!isManager && data.status === "DRAFT" && (
             <Button disabled={busy} onClick={() => changeStatus("SUBMITTED")}>
               홍보 신청 제출
-            </Button>
-          )}
-          {/* AI generate (research) */}
-          {type === "RESEARCH" && (
-            <Button variant="secondary" disabled={busy} onClick={generateAI}>
-              🤖 AI 보도자료 초안 생성
             </Button>
           )}
           {/* Applicant review actions */}
@@ -191,20 +177,16 @@ export function RequestDetail({
       {tab === "신청 정보" && <InfoTab data={data} />}
       {tab === "보도자료" && (
         <div className="space-y-6">
-          <ReleaseEditor
-            release={ko}
-            language="KO"
-            pressRequestId={data.id}
-            isManager={isManager}
-            onChange={() => router.refresh()}
-          />
-          <ReleaseEditor
-            release={en}
-            language="EN"
-            pressRequestId={data.id}
-            isManager={isManager}
-            onChange={() => router.refresh()}
-          />
+          <DraftPanel data={data} isManager={isManager} onChange={() => router.refresh()} />
+          <details className="rounded-xl border border-pgray-200 bg-white">
+            <summary className="cursor-pointer px-5 py-3 text-sm font-semibold text-pgray-600">
+              (선택) 시스템 내 보도자료 편집기 · 국문/영문 최종본 작성
+            </summary>
+            <div className="space-y-6 p-5 pt-0">
+              <ReleaseEditor release={ko} language="KO" pressRequestId={data.id} isManager={isManager} onChange={() => router.refresh()} />
+              <ReleaseEditor release={en} language="EN" pressRequestId={data.id} isManager={isManager} onChange={() => router.refresh()} />
+            </div>
+          </details>
         </div>
       )}
       {tab === "첨부파일" && (
@@ -245,6 +227,97 @@ function ManagerScheduling({ data, api, onDone }: { data: Data; api: any; onDone
         배포일 저장·안내
       </Button>
     </div>
+  );
+}
+
+function DraftPanel({
+  data,
+  isManager,
+  onChange,
+}: {
+  data: Data;
+  isManager: boolean;
+  onChange: () => void;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const type = data.type as RequestType;
+  const drafts = data.attachments.filter((a: any) => a.fileType === "PRESS_RELEASE_DRAFT");
+
+  async function upload(file: File) {
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("fileType", "PRESS_RELEASE_DRAFT");
+      fd.append("description", isManager ? "홍보팀 보완본" : "신청자 초안");
+      const res = await fetch(`/api/press-requests/${data.id}/attachments`, { method: "POST", body: fd });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        alert(d.error ?? "업로드 실패");
+        return;
+      }
+      onChange();
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  return (
+    <Card className="p-5">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="text-lg font-bold text-pgray-900">보도자료 초안</div>
+        <a
+          href={TEMPLATE_FILES[type]}
+          download
+          className="inline-flex items-center rounded-lg border border-accent-300 bg-accent-50 px-3 py-1.5 text-sm font-semibold text-accent-800 hover:bg-accent-100"
+        >
+          📄 초안 양식 다운로드
+        </a>
+      </div>
+      <p className="mt-1 text-sm text-pgray-500">
+        {isManager
+          ? "신청자가 올린 초안을 내려받아 보완한 뒤, 보완본을 다시 업로드하세요."
+          : "양식을 내려받아 작성한 보도자료 초안을 업로드하세요. 홍보팀이 검토·보완합니다."}
+      </p>
+
+      <div className="mt-3 space-y-2">
+        {drafts.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-pgray-300 py-6 text-center text-sm text-pgray-400">
+            아직 업로드된 초안이 없습니다.
+          </div>
+        ) : (
+          drafts.map((a: any) => (
+            <div key={a.id} className="flex items-center justify-between rounded-lg bg-pgray-50 px-3 py-2">
+              <div className="min-w-0">
+                <a href={a.fileUrl} target="_blank" download className="truncate font-semibold text-brand-700 hover:underline">
+                  {a.fileName}
+                </a>
+                <div className="text-xs text-pgray-400">
+                  {a.description ?? ""} · {new Date(a.createdAt).toLocaleString("ko-KR")}
+                </div>
+              </div>
+              <a href={a.fileUrl} download className="shrink-0 text-xs font-medium text-brand-600 hover:underline">
+                다운로드
+              </a>
+            </div>
+          ))
+        )}
+      </div>
+
+      <label className="mt-3 inline-flex cursor-pointer items-center rounded-lg bg-brand-600 px-3.5 py-2 text-sm font-semibold text-white hover:bg-brand-700">
+        {uploading ? "업로드 중…" : isManager ? "보완본 업로드" : "초안 업로드"}
+        <input
+          type="file"
+          className="hidden"
+          disabled={uploading}
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) upload(f);
+            e.target.value = "";
+          }}
+        />
+      </label>
+    </Card>
   );
 }
 

@@ -148,6 +148,8 @@ model AppointmentDetail {
   committeeName         String?
   organization          String?
   term                  String?
+  termStart             DateTime?
+  termEnd               DateTime?
   roleDescription       String?
   appointmentBackground String?
   expectedImpact        String?
