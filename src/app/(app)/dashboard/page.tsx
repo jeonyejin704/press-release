@@ -57,18 +57,18 @@ export default async function DashboardPage({
 
   return (
     <div className="space-y-7">
-      <div className="flex flex-col items-center gap-3 text-center">
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="font-display text-3xl text-pgray-900">
+          <h1 className="font-display text-2xl text-pgray-900">
             <span className="text-brand-600">POSTECH</span> 언론 홍보 현황
           </h1>
-          <p className="mt-1 text-sm text-pgray-500">
+          <p className="mt-0.5 text-sm text-pgray-500">
             안녕하세요, {user.name}님. 기간 <span className="font-semibold text-brand-600">{rangeLabel}</span> 기준 현황입니다.
           </p>
         </div>
 
-        {/* 기간 설정 (중앙) */}
-        <form method="get" className="flex flex-wrap items-center justify-center gap-2">
+        {/* 기간 설정 */}
+        <form method="get" className="flex flex-wrap items-end gap-2">
           {bucket && <input type="hidden" name="bucket" value={bucket} />}
           <label className="text-xs text-pgray-500">
             시작
@@ -99,7 +99,7 @@ export default async function DashboardPage({
               }`}
             >
               <div className="text-sm text-pgray-500">{k.label}</div>
-              <div className={`mt-1 font-display text-4xl ${TONE[k.tone]}`}>{k.value}</div>
+              <div className={`mt-1 text-4xl font-extrabold tracking-tight ${TONE[k.tone]}`}>{k.value}</div>
               <div className="mt-1 text-[11px] text-pgray-400">클릭하여 목록 보기</div>
             </Card>
           </Link>
