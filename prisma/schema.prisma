@@ -1,0 +1,339 @@
+// PressFlow — Prisma schema
+//
+// NOTE ON DATABASE CHOICE (documented default):
+// The MVP uses SQLite for zero-config local development. SQLite (via Prisma)
+// does not support native enums, so enum-like columns are stored as `String`
+// and their allowed values are enforced in the application layer via Zod /
+// TypeScript union types in `src/lib/enums.ts`.
+//
+// To move to PostgreSQL for production:
+//   1. Set `provider = "postgresql"` below.
+//   2. Point DATABASE_URL at your Postgres instance.
+//   3. (Optional) Convert the String status/type/role/language columns to
+//      native `enum` blocks — the allowed values already live in enums.ts.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Users & roles
+// ---------------------------------------------------------------------------
+// role: APPLICANT | PR_MANAGER | ADMIN
+model User {
+  id         String   @id @default(cuid())
+  email      String   @unique
+  name       String
+  phone      String?
+  department String?
+  role       String   @default("APPLICANT")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  pressRequests  PressRequest[]       @relation("Applicant")
+  releasesEdited PressRelease[]       @relation("ReleaseAuthor")
+  versions       PressReleaseVersion[] @relation("VersionAuthor")
+  attachments    Attachment[]
+  comments       Comment[]
+  notifications  Notification[]
+  auditLogs      AuditLog[]
+}
+
+// ---------------------------------------------------------------------------
+// Press requests
+// ---------------------------------------------------------------------------
+// type:   RESEARCH | AWARD | APPOINTMENT | PERSONAL_NEWS | EVENT | OTHER
+// status: DRAFT | SUBMITTED | PR_REVIEW | MATERIAL_REQUESTED | APPLICANT_REVIEW
+//         | KOREAN_FINAL_CONFIRMED | ENGLISH_DRAFTING | ENGLISH_REVIEW_REQUESTED
+//         | REVISION_REQUESTED | FINAL_COMPLETED | SCHEDULED | DISTRIBUTED
+//         | ON_HOLD | REJECTED
+model PressRequest {
+  id                      String    @id @default(cuid())
+  type                    String
+  status                  String    @default("DRAFT")
+  title                   String
+  applicantId             String
+  department              String?
+  contactPhone            String?
+  desiredPublishDate      DateTime?
+  expectedPublishDate     DateTime?
+  isUrgent                Boolean   @default(false)
+  publicDisclosureAllowed Boolean   @default(true)
+  note                    String?
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+  submittedAt             DateTime?
+  completedAt             DateTime?
+  distributedAt           DateTime?
+
+  applicant   User @relation("Applicant", fields: [applicantId], references: [id])
+
+  research      ResearchDetail?
+  award         AwardDetail?
+  appointment   AppointmentDetail?
+  personalNews  PersonalNewsDetail?
+  event         EventDetail?
+
+  releases      PressRelease[]
+  attachments   Attachment[]
+  comments      Comment[]
+  notifications Notification[]
+  auditLogs     AuditLog[]
+  checklist     ChecklistItem[]
+
+  @@index([status])
+  @@index([type])
+  @@index([department])
+}
+
+// ---------------------------------------------------------------------------
+// Type-specific detail tables
+// ---------------------------------------------------------------------------
+model ResearchDetail {
+  id                            String    @id @default(cuid())
+  pressRequestId                String    @unique
+  paperTitleKo                  String?
+  paperTitleEn                  String?
+  correspondingAuthorName       String?
+  correspondingAuthorDepartment String?
+  correspondingAuthorEmployeeNo String?
+  firstAuthorName               String?
+  firstAuthorDepartment         String?
+  coAuthors                     String?
+  journalName                   String?
+  publishedDate                 DateTime?
+  partnerInstitutions           String?
+  doi                           String?
+  fundingInfo                   String?
+  abstract                      String?
+  researchBackground            String?
+  researchContent               String?
+  significance                  String?
+  expectedImpact                String?
+  applicationFields             String?
+  easyExplanation               String?
+  additionalNotes               String?
+
+  pressRequest PressRequest @relation(fields: [pressRequestId], references: [id], onDelete: Cascade)
+}
+
+model AwardDetail {
+  id                   String    @id @default(cuid())
+  pressRequestId       String    @unique
+  awardName            String?
+  awardeeName          String?
+  awardeeDepartment    String?
+  awardeeTitle         String?
+  awardingOrganization String?
+  ceremonyDate         DateTime?
+  ceremonyLocation     String?
+  awardDescription     String?
+  awardBackground      String?
+  significance         String?
+
+  pressRequest PressRequest @relation(fields: [pressRequestId], references: [id], onDelete: Cascade)
+}
+
+model AppointmentDetail {
+  id                    String    @id @default(cuid())
+  pressRequestId        String    @unique
+  appointeeName         String?
+  department            String?
+  title                 String?
+  committeeName         String?
+  organization          String?
+  term                  String?
+  roleDescription       String?
+  appointmentBackground String?
+  expectedImpact        String?
+
+  pressRequest PressRequest @relation(fields: [pressRequestId], references: [id], onDelete: Cascade)
+}
+
+model PersonalNewsDetail {
+  id             String    @id @default(cuid())
+  pressRequestId String    @unique
+  subjectName    String?
+  department     String?
+  title          String?
+  newsType       String?
+  content        String?
+  occurredAt     DateTime?
+  location       String?
+  organization   String?
+  significance   String?
+
+  pressRequest PressRequest @relation(fields: [pressRequestId], references: [id], onDelete: Cascade)
+}
+
+model EventDetail {
+  id             String    @id @default(cuid())
+  pressRequestId String    @unique
+  eventName      String?
+  who            String?
+  when           String?
+  whereAt        String?
+  what           String?
+  how            String?
+  why            String?
+  host           String?
+  organizer      String?
+  participants   String?
+  program        String?
+  expectedImpact String?
+  contactInfo    String?
+
+  pressRequest PressRequest @relation(fields: [pressRequestId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------------------------------------------------------
+// Press releases (KO/EN) + version history
+// ---------------------------------------------------------------------------
+// language: KO | EN
+model PressRelease {
+  id              String   @id @default(cuid())
+  pressRequestId  String
+  language        String   @default("KO")
+  title           String   @default("")
+  subtitle        String   @default("")
+  body            String   @default("")
+  summary         String   @default("")
+  easyExplanation String   @default("")
+  imageCaption    String   @default("")
+  version         Int      @default(1)
+  isFinal         Boolean  @default(false)
+  createdById     String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  pressRequest PressRequest          @relation(fields: [pressRequestId], references: [id], onDelete: Cascade)
+  createdBy    User?                 @relation("ReleaseAuthor", fields: [createdById], references: [id])
+  versions     PressReleaseVersion[]
+  comments     Comment[]
+
+  @@unique([pressRequestId, language])
+}
+
+model PressReleaseVersion {
+  id             String   @id @default(cuid())
+  pressReleaseId String
+  version        Int
+  title          String
+  subtitle       String
+  body           String
+  changedById    String?
+  changeComment  String?
+  createdAt      DateTime @default(now())
+
+  pressRelease PressRelease @relation(fields: [pressReleaseId], references: [id], onDelete: Cascade)
+  changedBy    User?        @relation("VersionAuthor", fields: [changedById], references: [id])
+}
+
+// ---------------------------------------------------------------------------
+// Attachments, comments, notifications, audit
+// ---------------------------------------------------------------------------
+model Attachment {
+  id               String   @id @default(cuid())
+  pressRequestId   String
+  fileName         String
+  fileUrl          String
+  fileType         String   @default("OTHER")
+  mimeType         String?
+  size             Int      @default(0)
+  description      String?
+  isRepresentative Boolean  @default(false)
+  uploadedById     String?
+  createdAt        DateTime @default(now())
+
+  pressRequest PressRequest @relation(fields: [pressRequestId], references: [id], onDelete: Cascade)
+  uploadedBy   User?        @relation(fields: [uploadedById], references: [id])
+}
+
+model Comment {
+  id             String   @id @default(cuid())
+  pressRequestId String
+  pressReleaseId String?
+  authorId       String
+  body           String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  pressRequest PressRequest  @relation(fields: [pressRequestId], references: [id], onDelete: Cascade)
+  pressRelease PressRelease? @relation(fields: [pressReleaseId], references: [id], onDelete: Cascade)
+  author       User          @relation(fields: [authorId], references: [id])
+}
+
+// type mirrors NotificationType in src/lib/enums.ts
+model Notification {
+  id             String   @id @default(cuid())
+  userId         String
+  pressRequestId String?
+  type           String
+  title          String
+  message        String
+  isRead         Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  user         User          @relation(fields: [userId], references: [id])
+  pressRequest PressRequest? @relation(fields: [pressRequestId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+}
+
+model ChecklistItem {
+  id             String   @id @default(cuid())
+  pressRequestId String
+  key            String
+  label          String
+  checked        Boolean  @default(false)
+  updatedAt      DateTime @updatedAt
+
+  pressRequest PressRequest @relation(fields: [pressRequestId], references: [id], onDelete: Cascade)
+
+  @@unique([pressRequestId, key])
+}
+
+model AuditLog {
+  id             String   @id @default(cuid())
+  userId         String?
+  pressRequestId String?
+  action         String
+  beforeValue    String?
+  afterValue     String?
+  createdAt      DateTime @default(now())
+
+  user         User?         @relation(fields: [userId], references: [id])
+  pressRequest PressRequest? @relation(fields: [pressRequestId], references: [id], onDelete: Cascade)
+
+  @@index([pressRequestId])
+}
+
+// ---------------------------------------------------------------------------
+// News monitoring
+// ---------------------------------------------------------------------------
+model NewsItem {
+  id                    String   @id @default(cuid())
+  title                 String
+  mediaName             String?
+  publishedAt           DateTime?
+  url                   String   @unique
+  summary               String?
+  keyword               String?
+  isImportant           Boolean  @default(false)
+  relatedPressRequestId String?
+  createdAt             DateTime @default(now())
+
+  @@index([keyword])
+}
+
+model NewsKeyword {
+  id        String   @id @default(cuid())
+  keyword   String   @unique
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+}

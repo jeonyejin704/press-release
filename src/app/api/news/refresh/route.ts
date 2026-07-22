@@ -1,0 +1,40 @@
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { getCurrentUser, isManager } from "@/lib/session";
+import { getNewsProvider } from "@/lib/news";
+
+// Pulls fresh articles from the configured news provider (mock by default)
+// for all active keywords, de-duplicating by URL.
+export async function POST() {
+  const user = await getCurrentUser();
+  if (!user || !isManager(user)) {
+    return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+  }
+
+  const keywords = await prisma.newsKeyword.findMany({ where: { active: true } });
+  const kwList = keywords.map((k) => k.keyword);
+  if (kwList.length === 0) return NextResponse.json({ added: 0 });
+
+  const provider = getNewsProvider();
+  const items = await provider.searchNews(kwList);
+
+  let added = 0;
+  for (const item of items) {
+    try {
+      await prisma.newsItem.create({
+        data: {
+          title: item.title,
+          mediaName: item.mediaName,
+          publishedAt: item.publishedAt,
+          url: item.url,
+          summary: item.summary,
+          keyword: item.keyword,
+        },
+      });
+      added++;
+    } catch {
+      // duplicate url (unique) — skip
+    }
+  }
+  return NextResponse.json({ added, provider: provider.name });
+}
