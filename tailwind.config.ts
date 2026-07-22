@@ -46,9 +46,9 @@ const config: Config = {
           900: "#2a2827",
         },
       },
-      fontSize: {
-        // slightly larger display sizes for hierarchy
-        "display": ["2rem", { lineHeight: "2.4rem", fontWeight: "800" }],
+      fontFamily: {
+        sans: ['"Gothic A1"', "ui-sans-serif", "system-ui", '"Apple SD Gothic Neo"', '"Malgun Gothic"', "sans-serif"],
+        display: ['"Jua"', '"Gothic A1"', "ui-sans-serif", "system-ui", "sans-serif"],
       },
     },
   },

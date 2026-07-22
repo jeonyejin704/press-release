@@ -83,7 +83,7 @@ export function NewsClient({ news, keywords }: { news: any[]; keywords: string[]
               </div>
               <button
                 onClick={() => toggleImportant(n.id, n.isImportant)}
-                className={`shrink-0 text-2xl ${n.isImportant ? "text-amber-400" : "text-slate-300 hover:text-amber-300"}`}
+                className={`shrink-0 text-2xl ${n.isImportant ? "text-accent-500" : "text-pgray-300 hover:text-accent-300"}`}
                 title="중요 표시"
               >
                 ★

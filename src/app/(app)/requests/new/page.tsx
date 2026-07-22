@@ -15,7 +15,7 @@ const TYPE_ICON: Record<string, string> = {
 export default function NewRequestPage() {
   return (
     <div>
-      <h1 className="text-2xl font-extrabold tracking-tight text-pgray-900">새 홍보 신청</h1>
+      <h1 className="font-display text-2xl text-pgray-900">새 홍보 신청</h1>
       <p className="mt-1 text-sm text-pgray-500">홍보 유형을 선택하세요. 각 유형의 안내를 먼저 확인해 주세요.</p>
 
       {/* 공통 안내 배너 */}

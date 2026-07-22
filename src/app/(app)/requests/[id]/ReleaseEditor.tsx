@@ -116,7 +116,7 @@ export function ReleaseEditor({
         <div className="flex items-center gap-2">
           <div className="text-sm font-semibold text-slate-700">{label}</div>
           <Badge>v{release.version}</Badge>
-          {release.isFinal && <Badge color="bg-green-100 text-green-700">최종본</Badge>}
+          {release.isFinal && <Badge color="bg-brand-100 text-brand-700">최종본</Badge>}
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="ghost" onClick={() => setPreview((p) => !p)}>

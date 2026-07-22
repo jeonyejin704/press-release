@@ -139,17 +139,18 @@ async function main() {
   ]);
 
   // ── Users ────────────────────────────────────────────────────────────────
+  // 고정 ID: DB를 다시 시드해도 로그인 쿠키가 무효화되지 않도록 (리다이렉트 루프 방지)
   const manager = await prisma.user.create({
-    data: { email: "pr.manager@postech.ac.kr", name: "박홍보", phone: "010-5555-6666", department: "대외협력팀", role: "PR_MANAGER" },
+    data: { id: "u_manager", email: "pr.manager@postech.ac.kr", name: "박홍보", phone: "010-5555-6666", department: "대외협력팀", role: "PR_MANAGER" },
   });
   const admin = await prisma.user.create({
-    data: { email: "admin@postech.ac.kr", name: "관리자", department: "대외협력팀", role: "ADMIN" },
+    data: { id: "u_admin", email: "admin@postech.ac.kr", name: "관리자", department: "대외협력팀", role: "ADMIN" },
   });
   const applicant1 = await prisma.user.create({
-    data: { email: "prof.kim@postech.ac.kr", name: "김연구", phone: "010-1111-2222", department: "화학공학과", role: "APPLICANT" },
+    data: { id: "u_kim", email: "prof.kim@postech.ac.kr", name: "김연구", phone: "010-1111-2222", department: "화학공학과", role: "APPLICANT" },
   });
   const applicant2 = await prisma.user.create({
-    data: { email: "prof.lee@postech.ac.kr", name: "이교수", phone: "010-3333-4444", department: "물리학과", role: "APPLICANT" },
+    data: { id: "u_lee", email: "prof.lee@postech.ac.kr", name: "이교수", phone: "010-3333-4444", department: "물리학과", role: "APPLICANT" },
   });
   // 다양성용 추가 신청자
   const extraApplicants = [];

@@ -45,7 +45,7 @@ export default async function RequestsPage({
     <div>
       <div className="mb-5 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-pgray-900">
+          <h1 className="font-display text-2xl text-pgray-900">
             {manager ? "전체 신청 관리" : "내 홍보 신청"}
           </h1>
           <p className="text-sm text-pgray-500">
@@ -128,7 +128,7 @@ export default async function RequestsPage({
                       {r.title}
                     </Link>
                     {r.isUrgent && (
-                      <Badge color="ml-2 bg-red-100 text-red-700">긴급</Badge>
+                      <Badge color="ml-2 bg-accent-100 text-accent-800">긴급</Badge>
                     )}
                   </td>
                   <td className="px-4 py-3 text-slate-600">

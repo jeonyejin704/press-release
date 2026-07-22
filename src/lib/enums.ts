@@ -64,22 +64,25 @@ export const REQUEST_STATUS_LABELS: Record<RequestStatus, string> = {
   REJECTED: "반려",
 };
 
-// Tailwind badge color classes per status.
+// Badge color classes per status — POSTECH palette only (red/orange/gray).
+//  · 진행/긍정 단계     → 레드(brand)
+//  · 주의/조치 필요 단계 → 오렌지(accent)
+//  · 비활성(초안/보류/반려) → 그레이(pgray)
 export const REQUEST_STATUS_COLORS: Record<RequestStatus, string> = {
-  DRAFT: "bg-gray-100 text-gray-700",
-  SUBMITTED: "bg-blue-100 text-blue-700",
-  PR_REVIEW: "bg-indigo-100 text-indigo-700",
-  MATERIAL_REQUESTED: "bg-amber-100 text-amber-800",
-  APPLICANT_REVIEW: "bg-purple-100 text-purple-700",
-  KOREAN_FINAL_CONFIRMED: "bg-teal-100 text-teal-800",
-  ENGLISH_DRAFTING: "bg-cyan-100 text-cyan-800",
-  ENGLISH_REVIEW_REQUESTED: "bg-sky-100 text-sky-800",
-  REVISION_REQUESTED: "bg-orange-100 text-orange-800",
-  FINAL_COMPLETED: "bg-green-100 text-green-700",
-  SCHEDULED: "bg-emerald-100 text-emerald-800",
-  DISTRIBUTED: "bg-green-600 text-white",
-  ON_HOLD: "bg-yellow-100 text-yellow-800",
-  REJECTED: "bg-red-100 text-red-700",
+  DRAFT: "bg-pgray-100 text-pgray-600",
+  SUBMITTED: "bg-brand-50 text-brand-700",
+  PR_REVIEW: "bg-brand-100 text-brand-700",
+  MATERIAL_REQUESTED: "bg-accent-100 text-accent-800",
+  APPLICANT_REVIEW: "bg-accent-50 text-accent-700",
+  KOREAN_FINAL_CONFIRMED: "bg-brand-100 text-brand-700",
+  ENGLISH_DRAFTING: "bg-accent-50 text-accent-700",
+  ENGLISH_REVIEW_REQUESTED: "bg-accent-100 text-accent-800",
+  REVISION_REQUESTED: "bg-accent-100 text-accent-800",
+  FINAL_COMPLETED: "bg-brand-600 text-white",
+  SCHEDULED: "bg-accent-100 text-accent-800",
+  DISTRIBUTED: "bg-brand-700 text-white",
+  ON_HOLD: "bg-pgray-200 text-pgray-700",
+  REJECTED: "bg-pgray-300 text-pgray-800",
 };
 
 export const LANGUAGES = ["KO", "EN"] as const;

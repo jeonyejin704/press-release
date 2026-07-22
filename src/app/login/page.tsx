@@ -41,8 +41,8 @@ export default function LoginPage() {
     <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-brand-800 to-brand-600 p-4">
       <Card className="w-full max-w-md p-8">
         <div className="mb-6 text-center">
-          <div className="text-2xl font-bold text-brand-700">PressFlow</div>
-          <div className="mt-1 text-sm text-slate-500">대학 언론홍보 관리 시스템</div>
+          <div className="font-display text-4xl text-brand-600">PressFlow</div>
+          <div className="mt-1 text-sm text-pgray-500">POSTECH 언론 홍보 관리 시스템</div>
         </div>
 
         <form
@@ -59,7 +59,7 @@ export default function LoginPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-sm text-brand-600">{error}</p>}
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? "로그인 중…" : "로그인"}
           </Button>

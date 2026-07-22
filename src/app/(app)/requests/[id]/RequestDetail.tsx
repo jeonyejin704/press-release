@@ -84,7 +84,7 @@ export function RequestDetail({
           ← 목록으로
         </button>
         <div className="flex flex-wrap items-center gap-2">
-          <h1 className="text-2xl font-extrabold tracking-tight text-pgray-900">{data.title}</h1>
+          <h1 className="font-display text-2xl text-pgray-900">{data.title}</h1>
           {data.isUrgent && <Badge color="bg-brand-100 text-brand-700">긴급</Badge>}
         </div>
         <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-slate-500">
@@ -100,9 +100,9 @@ export function RequestDetail({
 
       {/* Missing materials warning (manager) */}
       {isManager && data.missing?.length > 0 && (
-        <Card className="mb-4 border-amber-200 bg-amber-50 p-3">
-          <div className="text-sm font-medium text-amber-800">⚠️ 자료 누락 감지</div>
-          <ul className="mt-1 list-inside list-disc text-sm text-amber-700">
+        <Card className="mb-4 border-accent-200 bg-accent-50 p-3">
+          <div className="text-sm font-semibold text-accent-800">⚠️ 자료 누락 감지</div>
+          <ul className="mt-1 list-inside list-disc text-sm text-accent-700">
             {data.missing.map((m: string) => (
               <li key={m}>{m}</li>
             ))}
@@ -464,7 +464,7 @@ function AttachmentsTab({
                 </div>
               </div>
               {(isManager || a.uploadedById === currentUserId) && (
-                <button onClick={() => remove(a.id)} className="shrink-0 text-xs text-red-500 hover:underline">
+                <button onClick={() => remove(a.id)} className="shrink-0 text-xs text-brand-600 hover:underline">
                   삭제
                 </button>
               )}

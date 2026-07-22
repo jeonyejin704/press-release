@@ -1,3 +1,8 @@
+/* 둥글둥글하고 세련된 무료 폰트 (상업용 사용 가능) — Google Fonts.
+   @import는 React의 스타일시트 서스펜스를 유발하지 않아, 폰트 로드 실패 시에도
+   앱(차트 등)이 정상 렌더된다. 폰트는 사용자 브라우저에서 비동기로 로드된다. */
+@import url("https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;500;600;700;800&family=Jua&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -16,12 +21,19 @@ body {
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: ui-sans-serif, system-ui, "Apple SD Gothic Neo", "Malgun Gothic",
-    sans-serif;
+  font-family: "Gothic A1", ui-sans-serif, system-ui, "Apple SD Gothic Neo",
+    "Malgun Gothic", sans-serif;
   -webkit-font-smoothing: antialiased;
+  letter-spacing: -0.01em;
+}
+
+/* 둥근 제목용 (Jua) */
+.font-display {
+  font-family: "Jua", "Gothic A1", ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: 0;
 }
 
 .prose-release {
   white-space: pre-wrap;
-  line-height: 1.7;
+  line-height: 1.75;
 }

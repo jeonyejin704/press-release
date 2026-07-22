@@ -38,7 +38,7 @@ export function Card({
   className?: string;
 }) {
   return (
-    <div className={`rounded-xl border border-slate-200 bg-white shadow-sm ${className}`}>
+    <div className={`rounded-2xl border border-pgray-100 bg-white shadow-sm ${className}`}>
       {children}
     </div>
   );
@@ -73,7 +73,7 @@ type BtnProps = {
 const BTN_STYLES: Record<string, string> = {
   primary: "bg-brand-600 text-white hover:bg-brand-700",
   secondary: "bg-white text-brand-700 border border-brand-200 hover:bg-brand-50",
-  danger: "bg-red-600 text-white hover:bg-red-700",
+  danger: "bg-brand-700 text-white hover:bg-brand-800",
   ghost: "text-slate-600 hover:bg-slate-100",
 };
 
@@ -133,7 +133,7 @@ export function Field({
     <label className="block">
       <span className="text-sm font-medium text-slate-700">
         {label}
-        {required && <span className="ml-0.5 text-red-500">*</span>}
+        {required && <span className="ml-0.5 text-brand-600">*</span>}
       </span>
       <div className="mt-1">{children}</div>
       {hint && <span className="mt-1 block text-xs text-slate-400">{hint}</span>}

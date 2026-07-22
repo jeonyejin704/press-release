@@ -41,7 +41,7 @@ export function NavBar({
     <header className="border-b border-slate-200 bg-white">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
         <div className="flex items-center gap-6">
-          <Link href="/" className="text-lg font-bold text-brand-700">
+          <Link href="/" className="font-display text-xl text-brand-600">
             PressFlow
           </Link>
           <nav className="hidden items-center gap-1 md:flex">
@@ -60,7 +60,7 @@ export function NavBar({
                 >
                   {l.label}
                   {l.href === "/notifications" && unreadCount > 0 && (
-                    <span className="absolute -right-1 -top-1 rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white">
+                    <span className="absolute -right-1 -top-1 rounded-full bg-brand-600 px-1.5 text-[10px] font-bold text-white">
                       {unreadCount}
                     </span>
                   )}

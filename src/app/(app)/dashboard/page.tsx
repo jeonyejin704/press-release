@@ -45,48 +45,38 @@ export default async function DashboardPage({
     : [];
 
   const kpis = [
-    { key: "total", label: "전체 신청", value: d.metrics.total, tone: "brand" },
+    { key: "total", label: "전체 신청", value: d.metrics.total, tone: "brandDark" },
     { key: "inProgress", label: "진행 중", value: d.metrics.inProgress, tone: "accent" },
-    { key: "completed", label: "최종 완료", value: d.metrics.completed, tone: "green" },
-    { key: "distributed", label: "배포 완료", value: d.metrics.distributed, tone: "green" },
+    { key: "completed", label: "최종 완료", value: d.metrics.completed, tone: "brand" },
+    { key: "distributed", label: "배포 완료", value: d.metrics.distributed, tone: "brandDark" },
     { key: "onHold", label: "보류", value: d.metrics.onHold, tone: "gray" },
-    { key: "rejected", label: "반려", value: d.metrics.rejected, tone: "gray" },
+    { key: "rejected", label: "반려", value: d.metrics.rejected, tone: "grayDark" },
   ];
 
   const rangeLabel = sp.from || sp.to ? `${sp.from ?? "처음"} ~ ${sp.to ?? "오늘"}` : "전체 기간";
 
   return (
     <div className="space-y-7">
-      <div className="flex flex-wrap items-end justify-between gap-3">
+      <div className="flex flex-col items-center gap-3 text-center">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-pgray-900">
-            <span className="text-brand-700">POSTECH</span> 언론 홍보 현황
+          <h1 className="font-display text-3xl text-pgray-900">
+            <span className="text-brand-600">POSTECH</span> 언론 홍보 현황
           </h1>
-          <p className="mt-0.5 text-sm text-pgray-500">
-            안녕하세요, {user.name}님. 기간: <span className="font-semibold text-pgray-700">{rangeLabel}</span>
+          <p className="mt-1 text-sm text-pgray-500">
+            안녕하세요, {user.name}님. 기간 <span className="font-semibold text-brand-600">{rangeLabel}</span> 기준 현황입니다.
           </p>
         </div>
 
-        {/* 기간 설정 */}
-        <form method="get" className="flex flex-wrap items-end gap-2">
+        {/* 기간 설정 (중앙) */}
+        <form method="get" className="flex flex-wrap items-center justify-center gap-2">
           {bucket && <input type="hidden" name="bucket" value={bucket} />}
           <label className="text-xs text-pgray-500">
             시작
-            <input
-              type="date"
-              name="from"
-              defaultValue={sp.from ?? ""}
-              className="ml-1 rounded-lg border border-pgray-300 px-2 py-1.5 text-sm"
-            />
+            <input type="date" name="from" defaultValue={sp.from ?? ""} className="ml-1 rounded-lg border border-pgray-300 px-2 py-1.5 text-sm" />
           </label>
           <label className="text-xs text-pgray-500">
             종료
-            <input
-              type="date"
-              name="to"
-              defaultValue={sp.to ?? ""}
-              className="ml-1 rounded-lg border border-pgray-300 px-2 py-1.5 text-sm"
-            />
+            <input type="date" name="to" defaultValue={sp.to ?? ""} className="ml-1 rounded-lg border border-pgray-300 px-2 py-1.5 text-sm" />
           </label>
           <button className="rounded-lg bg-brand-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-brand-700">
             기간 적용
@@ -104,12 +94,12 @@ export default async function DashboardPage({
         {kpis.map((k) => (
           <Link key={k.key} href={kpiHref(k.key)}>
             <Card
-              className={`p-4 transition hover:-translate-y-0.5 hover:shadow-md ${
+              className={`p-4 text-center transition hover:-translate-y-0.5 hover:shadow-md ${
                 bucket === k.key ? "ring-2 ring-brand-500" : ""
               }`}
             >
               <div className="text-sm text-pgray-500">{k.label}</div>
-              <div className={`mt-1 text-3xl font-extrabold ${TONE[k.tone]}`}>{k.value}</div>
+              <div className={`mt-1 font-display text-4xl ${TONE[k.tone]}`}>{k.value}</div>
               <div className="mt-1 text-[11px] text-pgray-400">클릭하여 목록 보기</div>
             </Card>
           </Link>
@@ -209,10 +199,11 @@ export default async function DashboardPage({
 }
 
 const TONE: Record<string, string> = {
-  brand: "text-brand-600",
+  brandDark: "text-brand-700",
+  brand: "text-brand-500",
   accent: "text-accent-600",
-  green: "text-green-600",
   gray: "text-pgray-500",
+  grayDark: "text-pgray-600",
 };
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
