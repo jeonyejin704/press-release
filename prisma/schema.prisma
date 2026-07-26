@@ -1,20 +1,15 @@
 // PressFlow — Prisma schema
 //
-// DATABASE: PostgreSQL (works locally, on GitHub Codespaces, and on Vercel).
-// Use a cloud Postgres such as Neon (free) so the same always-on database is
-// shared by your deployed site and any dev environment. Set DATABASE_URL to
-// the connection string.
-//
-// Enum-like columns (role/type/status/language) are stored as `String` and
-// validated in the app layer via `src/lib/enums.ts`. This keeps the schema
-// portable; they can be promoted to native Postgres enums later if desired.
+// DATABASE: SQLite for zero-config local / GitHub Codespaces development
+// (just `npm run setup`). Enum-like columns (role/type/status/language) are
+// stored as `String` and validated in the app layer via `src/lib/enums.ts`.
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
