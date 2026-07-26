@@ -1,12 +1,17 @@
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
-import { randomBytes } from "crypto";
-
-// Local-disk storage adapter (MVP). Saves under /public/uploads and returns a
-// public URL. For production, replace with an S3 / Azure Blob adapter that
-// implements the same `saveFile` signature and returns a signed URL.
+// File storage adapter.
 //
-// The random filename makes download URLs hard to guess (security requirement).
+// PressFlow stores uploaded files as data URLs in the database (the
+// `Attachment.fileUrl` column). This keeps uploads working identically in
+// every environment — local, GitHub Codespaces, and serverless hosts like
+// Vercel — without a separate object-storage service or a writable disk.
+//
+// Trade-off: files live in the DB as base64, so we cap uploads at 4 MB (also
+// under Vercel's serverless request-body limit). For large-scale production,
+// swap this adapter for S3 / Vercel Blob / Azure Blob — the rest of the app
+// only depends on `saveFile()` returning a usable `fileUrl`.
+
+import path from "path";
+
 export async function saveFile(file: File): Promise<{
   fileUrl: string;
   fileName: string;
@@ -14,22 +19,18 @@ export async function saveFile(file: File): Promise<{
   size: number;
 }> {
   const buffer = Buffer.from(await file.arrayBuffer());
-  const ext = path.extname(file.name) || "";
-  const random = randomBytes(16).toString("hex");
-  const stored = `${random}${ext}`;
-  const dir = path.join(process.cwd(), "public", "uploads");
-  await mkdir(dir, { recursive: true });
-  await writeFile(path.join(dir, stored), buffer);
+  const mimeType = file.type || "application/octet-stream";
+  const dataUrl = `data:${mimeType};base64,${buffer.toString("base64")}`;
   return {
-    fileUrl: `/uploads/${stored}`,
+    fileUrl: dataUrl,
     fileName: file.name,
-    mimeType: file.type || "application/octet-stream",
+    mimeType,
     size: buffer.length,
   };
 }
 
-// Basic upload constraints.
-export const MAX_UPLOAD_BYTES = 20 * 1024 * 1024; // 20 MB
+// Upload constraints.
+export const MAX_UPLOAD_BYTES = 4 * 1024 * 1024; // 4 MB (serverless-safe)
 export const ALLOWED_EXTENSIONS = [
   ".jpg", ".jpeg", ".png", ".gif", ".webp",
   ".pdf", ".doc", ".docx", ".ppt", ".pptx", ".hwp", ".hwpx",
@@ -39,6 +40,6 @@ export const ALLOWED_EXTENSIONS = [
 export function isAllowedFile(name: string, size: number): string | null {
   const ext = path.extname(name).toLowerCase();
   if (!ALLOWED_EXTENSIONS.includes(ext)) return "허용되지 않는 파일 형식입니다.";
-  if (size > MAX_UPLOAD_BYTES) return "파일 크기가 20MB를 초과합니다.";
+  if (size > MAX_UPLOAD_BYTES) return "파일 크기가 4MB를 초과합니다.";
   return null;
 }

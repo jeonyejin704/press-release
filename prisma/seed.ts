@@ -151,7 +151,17 @@ function randomCreatedAt() {
 }
 
 async function main() {
-  console.log("🌱 Seeding PressFlow (≈250 requests)...");
+  // On Vercel builds we seed only when the database is still empty, so that
+  // redeploys don't wipe data. Local `npm run db:seed` always reseeds.
+  if (process.env.SEED_ONLY_IF_EMPTY === "1") {
+    const existing = await prisma.user.count().catch(() => 0);
+    if (existing > 0) {
+      console.log(`↺ Seed skipped — database already has ${existing} users.`);
+      return;
+    }
+  }
+
+  console.log("🌱 Seeding PressFlow (≈320 requests)...");
 
   await prisma.$transaction([
     prisma.auditLog.deleteMany(),

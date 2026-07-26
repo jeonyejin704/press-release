@@ -58,7 +58,7 @@ Google Form + Outlook 메일 + 분산된 첨부파일로 진행되던 보도자�
 git clone <repo-url>
 cd pressflow
 npm install
-cp .env.example .env      # 기본값(SQLite/Mock)으로 바로 실행 가능
+cp .env.example .env      # 그리고 DATABASE_URL(Neon 등 Postgres)만 채우면 됩니다
 ```
 
 ## 6. 환경변수 설정
@@ -67,13 +67,37 @@ cp .env.example .env      # 기본값(SQLite/Mock)으로 바로 실행 가능
 
 | 변수 | 설명 | 기본값 |
 | --- | --- | --- |
-| `DATABASE_URL` | DB 연결 | `file:./dev.db` |
+| `DATABASE_URL` | Postgres 연결 문자열 (Neon 등) | (필수) |
 | `AI_PROVIDER` | `mock` / `anthropic` | `mock` |
 | `ANTHROPIC_API_KEY` | Anthropic 사용 시 | (빈값) |
 | `NEWS_PROVIDER` | `mock` / `naver`(TODO) | `mock` |
 | `NOTIFICATION_EMAIL_PROVIDER` | `none` / `smtp` / `graph`(TODO) | `none` |
 
 실제 AI 초안을 쓰려면: `AI_PROVIDER=anthropic`, `ANTHROPIC_API_KEY=sk-...` 설정.
+
+### 🚀 Vercel 배포 — 잠들지 않는 고정 링크 (태블릿 권장)
+
+한 번만 설정하면 `https://내앱.vercel.app` 고정 주소가 생기고, 언제 접속해도 바로 열립니다.
+(Codespace처럼 잠들지 않음, 터미널·포트·인증서 경고 없음)
+
+**1) 무료 클라우드 DB(Neon) 만들기**
+1. https://neon.tech → GitHub로 가입 → 프로젝트 생성
+2. 대시보드의 **Connection string** 복사 (드롭다운에서 **Direct connection** 권장)
+   - 형태: `postgresql://...@...neon.tech/neondb?sslmode=require`
+
+**2) Vercel에 배포**
+1. https://vercel.com → GitHub로 가입 → **Add New… → Project**
+2. 이 저장소(`press-release`) **Import**
+3. **Environment Variables**에 추가:
+   - `DATABASE_URL` = (1)에서 복사한 Neon 연결 문자열
+   - `SESSION_SECRET` = 아무 임의 문자열 (예: `postech-pr-2026`)
+4. **Deploy** 클릭
+
+빌드가 자동으로 **테이블 생성 + 데모 데이터 시드**까지 수행합니다(`vercel.json`).
+완료되면 생성된 `.vercel.app` 주소로 접속 → 데모 계정으로 로그인하면 됩니다.
+이후 코드를 push하면 Vercel이 자동 재배포하며, 데이터는 유지됩니다(빈 DB일 때만 시드).
+
+> 같은 `DATABASE_URL`을 Codespace의 `.env`에도 넣으면, 배포본과 개발환경이 **하나의 DB를 공유**해 데이터가 항상 유지됩니다.
 
 ### 태블릿·설치 없이 실행: GitHub Codespaces
 
