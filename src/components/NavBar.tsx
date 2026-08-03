@@ -21,6 +21,7 @@ export function NavBar({
     ? [
         { href: "/dashboard", label: "대시보드" },
         { href: "/requests", label: "신청 관리" },
+        { href: "/import", label: "데이터 가져오기" },
         { href: "/news", label: "뉴스 모니터링" },
         { href: "/notifications", label: "알림" },
       ]
