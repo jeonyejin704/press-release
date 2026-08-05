@@ -141,14 +141,17 @@ export async function getDashboardData(range: DashboardRange = {}) {
     if (dt.getFullYear() === thisYearNum) adThisYearTotal += a.amount;
     else if (dt.getFullYear() === thisYearNum - 1) adLastYearTotal += a.amount;
   }
-  const adMonthly: { month: string; thisYear: number; lastYear: number }[] = [];
+  const adMonthly: { month: string; thisYear: number; lastYear: number; ymThis: string; ymLast: string }[] = [];
   for (let i = 11; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const k = monthKey(d);
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
     adMonthly.push({
-      month: `${String(d.getMonth() + 1).padStart(2, "0")}월`,
+      month: `${mm}월`,
       thisYear: adMonthYoY.get(k) ?? 0,
       lastYear: adMonthYoY.get(k - 12) ?? 0,
+      ymThis: `${d.getFullYear()}-${mm}`,
+      ymLast: `${d.getFullYear() - 1}-${mm}`,
     });
   }
 

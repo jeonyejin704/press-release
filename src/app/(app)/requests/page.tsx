@@ -26,7 +26,6 @@ export default async function RequestsPage({
   if (sp.type) where.type = sp.type;
   if (sp.status) where.status = sp.status;
   if (sp.department) where.department = sp.department;
-  if (sp.urgent === "1") where.isUrgent = true;
   if (sp.q) where.title = { contains: sp.q };
 
   const requests = await prisma.pressRequest.findMany({
@@ -91,10 +90,6 @@ export default async function RequestsPage({
               ))}
             </select>
           )}
-          <label className="flex items-center gap-1 text-sm text-slate-600">
-            <input type="checkbox" name="urgent" value="1" defaultChecked={sp.urgent === "1"} />
-            긴급만
-          </label>
           <button className="rounded-lg bg-brand-600 px-3 py-1.5 text-sm font-medium text-white">
             적용
           </button>

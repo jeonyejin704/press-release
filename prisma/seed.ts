@@ -227,7 +227,6 @@ async function main() {
       department: heroDept,
       contactPhone: applicant1.phone,
       submittedAt: new Date(Date.now() - 5 * 86400000),
-      expectedPublishDate: new Date(), // 오늘 배포
       research: {
         create: {
           paperTitleKo: "세포 노화 조절 단백질 네트워크 규명",
@@ -266,7 +265,6 @@ async function main() {
       applicantId: applicant2.id,
       department: "컴퓨터공학과",
       submittedAt: new Date(Date.now() - 3 * 86400000),
-      expectedPublishDate: new Date(),
       award: {
         create: {
           awardName: "젊은과학자상",
@@ -301,10 +299,8 @@ async function main() {
     const submittedAt = isDraft ? null : new Date(createdAt.getTime() + randInt(0, 2) * 86400000);
     const completedAt = status === "FINAL_COMPLETED" ? new Date(createdAt.getTime() + randInt(5, 20) * 86400000) : null;
     const distributedAt = status === "DISTRIBUTED" ? new Date(createdAt.getTime() + randInt(7, 25) * 86400000) : null;
-    let expectedPublishDate: Date | null = null;
-    if (["SCHEDULED", "KOREAN_FINAL_CONFIRMED", "ENGLISH_REVIEW_REQUESTED"].includes(status)) {
-      expectedPublishDate = new Date(Date.now() + randInt(-3, 14) * 86400000);
-    }
+    // 배포일정(예상 배포일)은 더미로 채우지 않음 — 사용자가 업로드/입력한 건만 달력에 표시
+    const expectedPublishDate: Date | null = null;
 
     await prisma.pressRequest.create({
       data: {
@@ -353,43 +349,7 @@ async function main() {
     data: { userId: manager.id, type: "SUBMITTED", title: "새 홍보 신청", message: "새로운 홍보 신청이 접수되었습니다." },
   });
 
-  // ── 광고비 집행 내역 (24개월치, 매년 20건 이상) ────────────────────────────
-  const MEDIA: [string, number][] = [
-    ["네이버", 9], ["유튜브", 8], ["카카오", 6], ["신문(지면)", 6],
-    ["구글/GDN", 5], ["인스타그램", 5], ["라디오", 3], ["옥외(지하철/버스)", 3],
-  ];
-  const AD_TITLES = [
-    "대학 브랜드 캠페인", "신입생 모집 홍보", "연구성과 확산 캠페인", "입학설명회 홍보",
-    "글로벌 인지도 제고", "산학협력 홍보", "개교기념 캠페인", "학과 브랜딩",
-  ];
-  const now2 = new Date();
-  for (let i = 0; i < 48; i++) {
-    // 24개월에 걸쳐, 최근/특정 시기(3·9월)로 갈수록 더 많이 집행
-    const pairs: [number, number][] = [];
-    for (let m = 0; m < 24; m++) {
-      const d = new Date(now2.getFullYear(), now2.getMonth() - (23 - m), 1);
-      pairs.push([m, (1 + m * 0.06) * seasonalWeight(d.getMonth() + 1)]);
-    }
-    const mi = weighted(pairs);
-    const date = new Date(now2.getFullYear(), now2.getMonth() - (23 - mi), randInt(1, 27));
-    if (date > now2) date.setMonth(date.getMonth() - 1);
-    const medium = weighted(MEDIA);
-    // 매체별 대략적 단가로 집행액 산정 (원)
-    const base: Record<string, number> = {
-      "네이버": 5_000_000, "유튜브": 8_000_000, "카카오": 4_000_000, "신문(지면)": 6_000_000,
-      "구글/GDN": 4_500_000, "인스타그램": 3_500_000, "라디오": 3_000_000, "옥외(지하철/버스)": 9_000_000,
-    };
-    const amount = Math.round(((base[medium] ?? 4_000_000) * (0.6 + Math.random() * 1.2)) / 100000) * 100000;
-    await prisma.adSpend.create({
-      data: {
-        title: `${pick(AD_TITLES)} (${medium})`,
-        medium,
-        amount,
-        executedAt: date,
-        department: "대외협력팀",
-      },
-    });
-  }
+  // 광고비 집행 내역은 더미로 채우지 않음 — 사용자가 '광고비 집행' 메뉴에서 직접 등록/업로드.
 
   const total = await prisma.pressRequest.count();
   console.log(`✅ Seed complete. 총 신청 ${total}건`);

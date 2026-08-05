@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Card, Button, Badge, Field, inputClass, EmptyState } from "@/components/ui";
 
@@ -14,8 +15,11 @@ function manwon(v: number) {
   return `${v.toLocaleString()}원`;
 }
 
-export function AdsClient({ ads, summary }: { ads: any[]; summary: any }) {
+export function AdsClient({ ads, summary, focusMonth }: { ads: any[]; summary: any; focusMonth?: string | null }) {
   const router = useRouter();
+  const ymOf = (d: string) => { const x = new Date(d); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}`; };
+  const focusAds = focusMonth ? ads.filter((a) => ymOf(a.executedAt) === focusMonth) : [];
+  const focusTotal = focusAds.reduce((s, a) => s + a.amount, 0);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -79,6 +83,34 @@ export function AdsClient({ ads, summary }: { ads: any[]; summary: any }) {
         </div>
         <Button onClick={() => setOpen((o) => !o)}>{open ? "닫기" : "＋ 집행 내역 추가"}</Button>
       </div>
+
+      {/* 선택 월 상세 (대시보드 그래프 클릭) */}
+      {focusMonth && (
+        <Card className="mb-4 border-t-4 border-t-brand-600 p-5">
+          <div className="mb-3 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="font-display text-lg text-pgray-900">{focusMonth.replace("-", "년 ")}월 집행 내역</span>
+              <Badge color="bg-brand-100 text-brand-700">{focusAds.length}건 · {manwon(focusTotal)}</Badge>
+            </div>
+            <Link href="/ads" className="text-sm text-pgray-500 hover:underline">닫기 ✕</Link>
+          </div>
+          {focusAds.length === 0 ? (
+            <p className="py-4 text-center text-sm text-pgray-400">이 달에 집행된 내역이 없습니다.</p>
+          ) : (
+            <div className="grid gap-2 sm:grid-cols-2">
+              {focusAds.map((a) => (
+                <div key={a.id} className="flex items-center justify-between rounded-xl border border-pgray-100 bg-pgray-50 px-4 py-2.5">
+                  <span className="min-w-0">
+                    <span className="block truncate font-medium text-pgray-800">{a.title}</span>
+                    <Badge>{a.medium}</Badge>
+                  </span>
+                  <span className="shrink-0 font-semibold text-pgray-800">{manwon(a.amount)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+      )}
 
       {/* 요약 */}
       <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">

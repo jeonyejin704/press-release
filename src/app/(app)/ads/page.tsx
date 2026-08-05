@@ -5,7 +5,11 @@ import { AdsClient } from "./AdsClient";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdsPage() {
+export default async function AdsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | undefined>>;
+}) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   if (!isManager(user)) redirect("/requests");
@@ -30,10 +34,15 @@ export default async function AdsPage() {
     .map(([medium, amount]) => ({ medium, amount }))
     .sort((a, b) => b.amount - a.amount);
 
+  // 대시보드 그래프에서 클릭한 월 (YYYY-MM)
+  const sp = await searchParams;
+  const focusMonth = sp.month && /^\d{4}-\d{2}$/.test(sp.month) ? sp.month : null;
+
   return (
     <AdsClient
       ads={JSON.parse(JSON.stringify(ads))}
       summary={{ thisYear, thisYearTotal, lastYearTotal, mediums, count: ads.length }}
+      focusMonth={focusMonth}
     />
   );
 }

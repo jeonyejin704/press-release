@@ -84,16 +84,16 @@ export function TypePie({
   const router = useRouter();
   const clickable = (key: string) => linkMap && linkMap[key];
   return (
-    <ResponsiveContainer width="100%" height={250}>
-      <PieChart margin={{ top: 6, right: 40, bottom: 6, left: 40 }}>
+    <ResponsiveContainer width="100%" aspect={1.35} maxHeight={400}>
+      <PieChart margin={{ top: 12, right: 44, bottom: 12, left: 44 }}>
         <Pie
           data={data}
           dataKey="count"
           nameKey="label"
           cx="50%"
           cy="50%"
-          innerRadius={30}
-          outerRadius={78}
+          innerRadius="42%"
+          outerRadius="72%"
           paddingAngle={2}
           label={makeLabel()}
           labelLine={false}
@@ -147,19 +147,21 @@ export function DepartmentBar({
 export function AdSpendTrend({
   data,
 }: {
-  data: { month: string; thisYear: number; lastYear: number }[];
+  data: { month: string; thisYear: number; lastYear: number; ymThis: string; ymLast: string }[];
 }) {
+  const router = useRouter();
   const won = (v: number) => `${(v / 10000).toLocaleString()}만원`;
+  const go = (ym?: string) => { if (ym) router.push(`/ads?month=${ym}`); };
   return (
     <ResponsiveContainer width="100%" height={240}>
       <BarChart data={data} margin={{ top: 10, right: 12, left: 6, bottom: 0 }} barGap={2}>
         <CartesianGrid strokeDasharray="3 3" stroke="#eee7ea" vertical={false} />
         <XAxis dataKey="month" tick={{ fontSize: 11 }} />
         <YAxis tickFormatter={(v: number) => `${Math.round(v / 10000)}만`} tick={{ fontSize: 10 }} width={44} />
-        <Tooltip formatter={(v: number, n: string) => [won(v), n]} />
+        <Tooltip formatter={(v: number, n: string) => [won(v), n]} cursor={{ fill: "rgba(166,25,85,0.06)" }} />
         <Legend wrapperStyle={{ fontSize: 12 }} />
-        <Bar dataKey="lastYear" name={LAST_YEAR} fill={ORANGE} radius={[3, 3, 0, 0]} />
-        <Bar dataKey="thisYear" name={THIS_YEAR} fill={RED} radius={[3, 3, 0, 0]} />
+        <Bar dataKey="lastYear" name={LAST_YEAR} fill={ORANGE} radius={[3, 3, 0, 0]} cursor="pointer" onClick={(d: any) => go(d?.ymLast)} />
+        <Bar dataKey="thisYear" name={THIS_YEAR} fill={RED} radius={[3, 3, 0, 0]} cursor="pointer" onClick={(d: any) => go(d?.ymThis)} />
       </BarChart>
     </ResponsiveContainer>
   );
