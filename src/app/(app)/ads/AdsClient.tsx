@@ -7,7 +7,8 @@ import { Card, Button, Badge, Field, inputClass, EmptyState } from "@/components
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-const MEDIA = ["네이버", "유튜브", "카카오", "신문(지면)", "구글/GDN", "인스타그램", "라디오", "옥외(지하철/버스)", "기타"];
+// 매체 예시(자유 입력 가능 — 학교 실제 집행 매체에 맞게 직접 입력하세요)
+const MEDIA_SUGGESTIONS = ["신문(지면)", "방송", "라디오", "잡지/전문지", "옥외(지하철/버스)", "학회지/협회보", "온라인 배너", "기타"];
 
 function manwon(v: number) {
   if (v >= 100000000) return `${(v / 100000000).toFixed(1)}억원`;
@@ -23,7 +24,7 @@ export function AdsClient({ ads, summary, focusMonth }: { ads: any[]; summary: a
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [form, setForm] = useState({ title: "", medium: "네이버", amount: "", month: "", note: "" });
+  const [form, setForm] = useState({ title: "", medium: "", amount: "", month: "", note: "" });
   const [importResult, setImportResult] = useState<{ imported: number; skipped: number; errors: string[] } | null>(null);
   const [importing, setImporting] = useState(false);
 
@@ -45,12 +46,24 @@ export function AdsClient({ ads, summary, focusMonth }: { ads: any[]; summary: a
         setError(d.error ?? "등록 실패");
         return;
       }
-      setForm({ title: "", medium: "네이버", amount: "", month: "", note: "" });
+      setForm({ title: "", medium: "", amount: "", month: "", note: "" });
       setOpen(false);
       router.refresh();
     } finally {
       setBusy(false);
     }
+  }
+
+  async function removeOne(id: string) {
+    if (!confirm("이 집행 내역을 삭제할까요?")) return;
+    await fetch(`/api/ads?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+    router.refresh();
+  }
+
+  async function clearAll() {
+    if (!confirm(`집행 내역 ${summary.count}건을 모두 삭제할까요?\n(초기 더미 데이터를 지우는 용도입니다. 되돌릴 수 없습니다.)`)) return;
+    await fetch(`/api/ads?all=1`, { method: "DELETE" });
+    router.refresh();
   }
 
   async function importFile(file: File) {
@@ -81,7 +94,15 @@ export function AdsClient({ ads, summary, focusMonth }: { ads: any[]; summary: a
           <h1 className="font-display text-2xl text-pgray-900">광고비 집행 현황</h1>
           <p className="text-sm text-pgray-500">매체별 광고비 집행 내역을 관리하고 추이를 확인합니다.</p>
         </div>
-        <Button onClick={() => setOpen((o) => !o)}>{open ? "닫기" : "＋ 집행 내역 추가"}</Button>
+        <div className="flex items-center gap-2">
+          {summary.count > 0 && (
+            <button onClick={clearAll}
+              className="rounded-lg border border-pgray-200 px-3 py-2 text-sm font-medium text-pgray-500 hover:bg-pgray-50 hover:text-brand-600">
+              전체 삭제
+            </button>
+          )}
+          <Button onClick={() => setOpen((o) => !o)}>{open ? "닫기" : "＋ 집행 내역 추가"}</Button>
+        </div>
       </div>
 
       {/* 선택 월 상세 (대시보드 그래프 클릭) */}
@@ -165,9 +186,12 @@ export function AdsClient({ ads, summary, focusMonth }: { ads: any[]; summary: a
             <div className="sm:col-span-2"><Field label="집행 건명" required>
               <input className={inputClass} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="예: 신입생 모집 홍보 캠페인" /></Field></div>
             <Field label="매체" required>
-              <select className={inputClass} value={form.medium} onChange={(e) => setForm({ ...form, medium: e.target.value })}>
-                {MEDIA.map((m) => <option key={m}>{m}</option>)}
-              </select></Field>
+              <input className={inputClass} list="medium-suggestions" value={form.medium}
+                onChange={(e) => setForm({ ...form, medium: e.target.value })}
+                placeholder="예: 신문(지면), 방송, 옥외 등 직접 입력" />
+              <datalist id="medium-suggestions">
+                {MEDIA_SUGGESTIONS.map((m) => <option key={m} value={m} />)}
+              </datalist></Field>
             <Field label="집행액 (원)" required>
               <input type="number" className={inputClass} value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder="예: 5000000" /></Field>
             <Field label="집행월" required>
@@ -208,7 +232,7 @@ export function AdsClient({ ads, summary, focusMonth }: { ads: any[]; summary: a
             <div className="max-h-[30rem] overflow-auto">
               <table className="w-full text-sm">
                 <thead className="sticky top-0 bg-pgray-50 text-left text-xs uppercase text-pgray-500">
-                  <tr><th className="px-4 py-2">집행월</th><th className="px-4 py-2">건명</th><th className="px-4 py-2">매체</th><th className="px-4 py-2 text-right">집행액</th></tr>
+                  <tr><th className="px-4 py-2">집행월</th><th className="px-4 py-2">건명</th><th className="px-4 py-2">매체</th><th className="px-4 py-2 text-right">집행액</th><th className="px-4 py-2"></th></tr>
                 </thead>
                 <tbody className="divide-y divide-pgray-100">
                   {ads.map((a) => (
@@ -217,6 +241,10 @@ export function AdsClient({ ads, summary, focusMonth }: { ads: any[]; summary: a
                       <td className="px-4 py-2 text-pgray-800">{a.title}</td>
                       <td className="px-4 py-2"><Badge>{a.medium}</Badge></td>
                       <td className="whitespace-nowrap px-4 py-2 text-right font-semibold text-pgray-800">{manwon(a.amount)}</td>
+                      <td className="px-2 py-2 text-right">
+                        <button onClick={() => removeOne(a.id)} title="삭제"
+                          className="rounded px-1.5 text-pgray-300 hover:text-brand-600">✕</button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

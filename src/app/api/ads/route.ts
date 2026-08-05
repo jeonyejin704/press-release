@@ -42,3 +42,24 @@ export async function POST(req: Request) {
   await audit({ userId: user.id, action: "AD_SPEND_ADDED", afterValue: `${title} ${amount}` });
   return NextResponse.json({ ad });
 }
+
+// 개별 삭제(?id=) 또는 전체 비우기(?all=1)
+export async function DELETE(req: Request) {
+  const user = await getCurrentUser();
+  if (!user || !isManager(user)) return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
+
+  const { searchParams } = new URL(req.url);
+  const id = searchParams.get("id");
+  const all = searchParams.get("all");
+
+  if (all === "1") {
+    const { count } = await prisma.adSpend.deleteMany({});
+    await audit({ userId: user.id, action: "AD_SPEND_CLEARED", afterValue: `${count}건 삭제` });
+    return NextResponse.json({ deleted: count });
+  }
+
+  if (!id) return NextResponse.json({ error: "삭제할 항목을 지정해 주세요." }, { status: 400 });
+  await prisma.adSpend.delete({ where: { id } }).catch(() => null);
+  await audit({ userId: user.id, action: "AD_SPEND_DELETED", afterValue: id });
+  return NextResponse.json({ deleted: 1 });
+}
