@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser, isManager } from "@/lib/session";
 import { audit } from "@/lib/audit";
+import { snapshotAds } from "@/lib/ads-backup";
 
 export async function GET() {
   const user = await getCurrentUser();
@@ -40,6 +41,7 @@ export async function POST(req: Request) {
     },
   });
   await audit({ userId: user.id, action: "AD_SPEND_ADDED", afterValue: `${title} ${amount}` });
+  await snapshotAds(); // 추가할 때마다 백업 갱신
   return NextResponse.json({ ad });
 }
 
@@ -51,6 +53,8 @@ export async function DELETE(req: Request) {
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("id");
   const all = searchParams.get("all");
+
+  await snapshotAds(); // 삭제 전 반드시 백업(실수 대비 복구 가능)
 
   if (all === "1") {
     const { count } = await prisma.adSpend.deleteMany({});

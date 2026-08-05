@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser, isManager } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
+import { restorableCount } from "@/lib/ads-backup";
 import { AdsClient } from "./AdsClient";
 
 export const dynamic = "force-dynamic";
@@ -40,11 +41,14 @@ export default async function AdsPage({
   const sp = await searchParams;
   const focusMonth = sp.month && /^\d{4}-\d{2}$/.test(sp.month) ? sp.month : null;
 
+  const restorable = await restorableCount();
+
   return (
     <AdsClient
       ads={JSON.parse(JSON.stringify(ads))}
       summary={{ thisYear, thisYearTotal, lastYearTotal, mediums, count: ads.length }}
       focusMonth={focusMonth}
+      restorable={restorable}
     />
   );
 }

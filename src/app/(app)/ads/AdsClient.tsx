@@ -16,7 +16,7 @@ function manwon(v: number) {
   return `${v.toLocaleString()}원`;
 }
 
-export function AdsClient({ ads, summary, focusMonth }: { ads: any[]; summary: any; focusMonth?: string | null }) {
+export function AdsClient({ ads, summary, focusMonth, restorable = 0 }: { ads: any[]; summary: any; focusMonth?: string | null; restorable?: number }) {
   const router = useRouter();
   const ymOf = (d: string) => { const x = new Date(d); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}`; };
   const focusAds = focusMonth ? ads.filter((a) => ymOf(a.executedAt) === focusMonth) : [];
@@ -61,8 +61,17 @@ export function AdsClient({ ads, summary, focusMonth }: { ads: any[]; summary: a
   }
 
   async function clearAll() {
-    if (!confirm(`집행 내역 ${summary.count}건을 모두 삭제할까요?\n(초기 더미 데이터를 지우는 용도입니다. 되돌릴 수 없습니다.)`)) return;
+    const answer = prompt(`집행 내역 ${summary.count}건을 모두 삭제하려면 아래에 "삭제"를 입력하세요.\n(삭제 전 자동 백업되어 나중에 '복구'할 수 있습니다.)`);
+    if (answer !== "삭제") return;
     await fetch(`/api/ads?all=1`, { method: "DELETE" });
+    router.refresh();
+  }
+
+  async function restore() {
+    if (!confirm(`백업에서 광고비 내역 ${restorable}건을 복구할까요?`)) return;
+    const res = await fetch(`/api/ads/restore`, { method: "POST" });
+    const d = await res.json().catch(() => ({}));
+    alert(`${d.restored ?? 0}건을 복구했습니다.`);
     router.refresh();
   }
 
@@ -97,13 +106,23 @@ export function AdsClient({ ads, summary, focusMonth }: { ads: any[]; summary: a
         <div className="flex items-center gap-2">
           {summary.count > 0 && (
             <button onClick={clearAll}
-              className="rounded-lg border border-pgray-200 px-3 py-2 text-sm font-medium text-pgray-500 hover:bg-pgray-50 hover:text-brand-600">
+              className="rounded-lg border border-pgray-200 px-3 py-2 text-sm font-medium text-pgray-400 hover:bg-pgray-50 hover:text-brand-600">
               전체 삭제
             </button>
           )}
           <Button onClick={() => setOpen((o) => !o)}>{open ? "닫기" : "＋ 집행 내역 추가"}</Button>
         </div>
       </div>
+
+      {/* 자동 백업 복구 안내 */}
+      {restorable > 0 && (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-brand-300 bg-brand-50 px-4 py-2.5 text-sm text-brand-700">
+          <span>💾 백업에 <b>복구 가능한 집행 내역 {restorable}건</b>이 있습니다. (실수로 삭제된 데이터일 수 있어요)</span>
+          <button onClick={restore} className="rounded-md bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700">
+            백업에서 복구
+          </button>
+        </div>
+      )}
 
       {/* 선택 월 상세 (대시보드 그래프 클릭) */}
       {focusMonth && (
