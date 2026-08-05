@@ -27,6 +27,10 @@ export function AdsClient({ ads, summary, focusMonth, restorable = 0 }: { ads: a
   const [form, setForm] = useState({ title: "", medium: "", amount: "", month: "", note: "" });
   const [importResult, setImportResult] = useState<{ imported: number; skipped: number; errors: string[] } | null>(null);
   const [importing, setImporting] = useState(false);
+  // 업로드 → 미리보기 → '저장' 2단계
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<{ willImport: number; skipped: number; errors: string[]; sample: any[] } | null>(null);
+  const [saving, setSaving] = useState(false);
 
   async function submit() {
     setError("");
@@ -75,23 +79,54 @@ export function AdsClient({ ads, summary, focusMonth, restorable = 0 }: { ads: a
     router.refresh();
   }
 
-  async function importFile(file: File) {
+  // 1단계: 파일 업로드 → 미리보기(저장하지 않음)
+  async function previewFile(file: File) {
     setImportResult(null);
+    setPreview(null);
+    setPendingFile(file);
     setImporting(true);
     try {
       const fd = new FormData();
       fd.append("file", file);
-      const res = await fetch("/api/ads/import", { method: "POST", body: fd });
+      const res = await fetch("/api/ads/import?mode=preview", { method: "POST", body: fd });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setImportResult({ imported: 0, skipped: 0, errors: [data.error ?? "가져오기 실패"] });
+        setImportResult({ imported: 0, skipped: 0, errors: [data.error ?? "파일을 읽지 못했습니다."] });
+        setPendingFile(null);
         return;
       }
-      setImportResult(data);
-      router.refresh();
+      setPreview(data);
     } finally {
       setImporting(false);
     }
+  }
+
+  // 2단계: '저장' 클릭 → 실제 저장(기존 내역 유지, 추가만)
+  async function saveImport() {
+    if (!pendingFile) return;
+    setSaving(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", pendingFile);
+      const res = await fetch("/api/ads/import?mode=commit", { method: "POST", body: fd });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setImportResult({ imported: 0, skipped: 0, errors: [data.error ?? "저장 실패"] });
+        return;
+      }
+      setImportResult(data);
+      setPreview(null);
+      setPendingFile(null);
+      router.refresh();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function cancelImport() {
+    setPreview(null);
+    setPendingFile(null);
+    setImportResult(null);
   }
 
   const maxMedium = summary.mediums[0]?.amount ?? 1;
@@ -181,15 +216,61 @@ export function AdsClient({ ads, summary, focusMonth, restorable = 0 }: { ads: a
               양식 다운로드
             </a>
             <label className="inline-flex cursor-pointer items-center rounded-lg bg-brand-600 px-3.5 py-2 text-sm font-semibold text-white hover:bg-brand-700">
-              {importing ? "가져오는 중…" : "엑셀 업로드"}
-              <input type="file" accept=".xlsx,.xls,.csv" className="hidden" disabled={importing}
-                onChange={(e) => { const f = e.target.files?.[0]; if (f) importFile(f); e.target.value = ""; }} />
+              {importing ? "파일 확인 중…" : "① 엑셀 업로드"}
+              <input type="file" accept=".xlsx,.xls,.csv" className="hidden" disabled={importing || saving}
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) previewFile(f); e.target.value = ""; }} />
             </label>
           </div>
         </div>
+
+        {/* 미리보기 → 저장 */}
+        {preview && (
+          <div className="mt-4 rounded-xl border border-brand-200 bg-brand-50/60 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="text-sm text-pgray-700">
+                <b className="text-brand-700">{preview.willImport}건</b>이 추가될 예정입니다.
+                {preview.skipped > 0 && <span className="ml-2 text-accent-700">{preview.skipped}건은 오류로 제외</span>}
+                <div className="mt-0.5 text-xs text-pgray-500">저장 전까지는 반영되지 않으며, <b>기존 내역은 삭제되지 않고 추가만</b> 됩니다.</div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button onClick={cancelImport} className="rounded-lg border border-pgray-200 bg-white px-3 py-2 text-sm text-pgray-600 hover:bg-pgray-50">취소</button>
+                <button onClick={saveImport} disabled={saving || preview.willImport === 0}
+                  className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-bold text-white hover:bg-brand-700 disabled:opacity-40">
+                  {saving ? "저장 중…" : `② 저장 (${preview.willImport}건 추가)`}
+                </button>
+              </div>
+            </div>
+            {preview.sample.length > 0 && (
+              <div className="mt-3 overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead className="text-left text-pgray-400">
+                    <tr><th className="py-1 pr-3">집행월</th><th className="py-1 pr-3">건명</th><th className="py-1 pr-3">매체</th><th className="py-1 text-right">집행액</th></tr>
+                  </thead>
+                  <tbody className="text-pgray-700">
+                    {preview.sample.map((s, i) => (
+                      <tr key={i} className="border-t border-brand-100">
+                        <td className="py-1 pr-3 whitespace-nowrap">{s.month}</td>
+                        <td className="py-1 pr-3">{s.title}</td>
+                        <td className="py-1 pr-3">{s.medium}</td>
+                        <td className="py-1 text-right whitespace-nowrap">{manwon(s.amount)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {preview.willImport > preview.sample.length && (
+                  <div className="mt-1 text-xs text-pgray-400">…외 {preview.willImport - preview.sample.length}건 (저장 시 모두 추가)</div>
+                )}
+              </div>
+            )}
+            {preview.errors.length > 0 && (
+              <ul className="mt-2 text-xs text-accent-700">{preview.errors.map((e, i) => <li key={i}>• {e}</li>)}</ul>
+            )}
+          </div>
+        )}
+
         {importResult && (
           <div className="mt-3 rounded-lg bg-pgray-50 p-3 text-sm">
-            <span className="font-semibold text-pgray-800">{importResult.imported}건 등록</span>
+            <span className="font-semibold text-brand-700">✅ {importResult.imported}건 저장 완료</span>
             {importResult.skipped > 0 && <span className="ml-2 text-accent-700">{importResult.skipped}건 건너뜀</span>}
             {importResult.errors.length > 0 && (
               <ul className="mt-1 text-xs text-pgray-500">{importResult.errors.map((e, i) => <li key={i}>• {e}</li>)}</ul>

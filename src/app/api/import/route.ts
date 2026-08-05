@@ -54,6 +54,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
   }
 
+  const { searchParams } = new URL(req.url);
+  const mode = searchParams.get("mode") === "commit" ? "commit" : "preview";
+
   const form = await req.formData();
   const file = form.get("file");
   if (!(file instanceof File)) {
@@ -85,7 +88,13 @@ export async function POST(req: Request) {
     return u.id;
   }
 
-  let imported = 0;
+  // 1) 파싱 + 검증 (DB에 쓰지 않음)
+  type ValidRow = {
+    type: RequestType; status: RequestStatus; title: string; dept: string;
+    applicantName: string; applicantEmail: string; journal: string;
+    isUrgent: boolean; createdAt: Date; expectedPublishDate: Date | null;
+  };
+  const valid: ValidRow[] = [];
   const errors: string[] = [];
 
   for (let i = 0; i < rows.length; i++) {
@@ -113,34 +122,64 @@ export async function POST(req: Request) {
       continue;
     }
 
+    valid.push({
+      type, status, title, dept,
+      applicantName: norm(r["신청자이름"] ?? r["신청자"]),
+      applicantEmail: norm(r["신청자이메일"] ?? r["이메일"]),
+      journal: norm(r["게재저널"] ?? r["저널"]),
+      isUrgent: truthy(r["긴급"]),
+      createdAt: createdAt!,
+      expectedPublishDate: parseDate(r["예상배포일"]),
+    });
+  }
+
+  // 2) 미리보기 모드: 저장하지 않고 결과만 반환
+  if (mode === "preview") {
+    return NextResponse.json({
+      mode: "preview",
+      willImport: valid.length,
+      skipped: errors.length,
+      errors: errors.slice(0, 30),
+      sample: valid.slice(0, 5).map((v) => ({
+        type: REQUEST_TYPE_LABELS[v.type],
+        title: v.title,
+        department: v.dept,
+        applicant: v.applicantName || "미상",
+        status: REQUEST_STATUS_LABELS[v.status],
+      })),
+    });
+  }
+
+  // 3) 저장 모드: 기존 내역은 그대로 두고 '추가'만 한다(삭제 없음)
+  let imported = 0;
+  for (const v of valid) {
     try {
-      const applicantId = await resolveApplicant(norm(r["신청자이름"] ?? r["신청자"]), norm(r["신청자이메일"] ?? r["이메일"]), dept);
-      const journal = norm(r["게재저널"] ?? r["저널"]);
+      const applicantId = await resolveApplicant(v.applicantName, v.applicantEmail, v.dept);
       await prisma.pressRequest.create({
         data: {
-          type,
-          status,
-          title,
-          department: dept,
+          type: v.type,
+          status: v.status,
+          title: v.title,
+          department: v.dept,
           applicantId,
-          isUrgent: truthy(r["긴급"]),
-          createdAt: createdAt!,
-          updatedAt: createdAt!,
-          submittedAt: status === "DRAFT" ? null : createdAt,
-          completedAt: status === "FINAL_COMPLETED" ? createdAt : null,
-          distributedAt: status === "DISTRIBUTED" ? createdAt : null,
-          expectedPublishDate: parseDate(r["예상배포일"]),
-          ...(type === "RESEARCH" && journal
-            ? { research: { create: { journalName: journal } } }
+          isUrgent: v.isUrgent,
+          createdAt: v.createdAt,
+          updatedAt: v.createdAt,
+          submittedAt: v.status === "DRAFT" ? null : v.createdAt,
+          completedAt: v.status === "FINAL_COMPLETED" ? v.createdAt : null,
+          distributedAt: v.status === "DISTRIBUTED" ? v.createdAt : null,
+          expectedPublishDate: v.expectedPublishDate,
+          ...(v.type === "RESEARCH" && v.journal
+            ? { research: { create: { journalName: v.journal } } }
             : {}),
         },
       });
       imported++;
     } catch (e) {
-      errors.push(`${line}행: 등록 실패 (${(e as Error).message.slice(0, 60)})`);
+      errors.push(`저장 실패: ${v.title} (${(e as Error).message.slice(0, 50)})`);
     }
   }
 
   await audit({ userId: user.id, action: "BULK_IMPORT", afterValue: `imported=${imported}` });
-  return NextResponse.json({ imported, skipped: errors.length, errors: errors.slice(0, 30) });
+  return NextResponse.json({ mode: "commit", imported, skipped: errors.length, errors: errors.slice(0, 30) });
 }

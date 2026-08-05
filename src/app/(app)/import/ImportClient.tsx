@@ -6,33 +6,69 @@ import Link from "next/link";
 import { Card, Button, Badge } from "@/components/ui";
 
 type Result = { imported: number; skipped: number; errors: string[] };
+type Preview = { willImport: number; skipped: number; errors: string[]; sample: any[] };
 
 export function ImportClient() {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [fileName, setFileName] = useState("");
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<Preview | null>(null);
   const [result, setResult] = useState<Result | null>(null);
   const [error, setError] = useState("");
 
+  // 1단계: 업로드 → 미리보기(저장하지 않음)
   async function upload(file: File) {
     setError("");
     setResult(null);
+    setPreview(null);
+    setPendingFile(file);
     setBusy(true);
     setFileName(file.name);
     try {
       const fd = new FormData();
       fd.append("file", file);
-      const res = await fetch("/api/import", { method: "POST", body: fd });
+      const res = await fetch("/api/import?mode=preview", { method: "POST", body: fd });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(data.error ?? "가져오기에 실패했습니다.");
+        setError(data.error ?? "파일을 읽지 못했습니다.");
+        setPendingFile(null);
         return;
       }
-      setResult(data);
-      router.refresh();
+      setPreview(data);
     } finally {
       setBusy(false);
     }
+  }
+
+  // 2단계: '저장' → 실제 등록(기존 내역 유지, 추가만)
+  async function save() {
+    if (!pendingFile) return;
+    setSaving(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", pendingFile);
+      const res = await fetch("/api/import?mode=commit", { method: "POST", body: fd });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error ?? "저장에 실패했습니다.");
+        return;
+      }
+      setResult(data);
+      setPreview(null);
+      setPendingFile(null);
+      router.refresh();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function cancel() {
+    setPreview(null);
+    setPendingFile(null);
+    setFileName("");
+    setError("");
   }
 
   return (
@@ -67,12 +103,12 @@ export function ImportClient() {
           필수 항목: <b>유형 · 제목 · 학과 · 신청일 · 상태</b>. (엑셀 .xlsx 또는 .csv)
         </p>
         <label className="inline-flex cursor-pointer items-center rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700">
-          {busy ? "가져오는 중…" : "파일 선택해서 가져오기"}
+          {busy ? "파일 확인 중…" : "① 파일 선택"}
           <input
             type="file"
             accept=".xlsx,.xls,.csv"
             className="hidden"
-            disabled={busy}
+            disabled={busy || saving}
             onChange={(e) => {
               const f = e.target.files?.[0];
               if (f) upload(f);
@@ -82,13 +118,59 @@ export function ImportClient() {
         </label>
         {fileName && <span className="ml-3 text-sm text-pgray-500">{fileName}</span>}
         {error && <p className="mt-3 text-sm font-medium text-brand-600">{error}</p>}
+
+        {/* 미리보기 → 저장 */}
+        {preview && (
+          <div className="mt-4 rounded-xl border border-brand-200 bg-brand-50/60 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="text-sm text-pgray-700">
+                <b className="text-brand-700">{preview.willImport}건</b>이 추가될 예정입니다.
+                {preview.skipped > 0 && <span className="ml-2 text-accent-700">{preview.skipped}건은 오류로 제외</span>}
+                <div className="mt-0.5 text-xs text-pgray-500">저장 전까지는 반영되지 않으며, <b>기존 내역은 삭제되지 않고 추가만</b> 됩니다.</div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button onClick={cancel} className="rounded-lg border border-pgray-200 bg-white px-3 py-2 text-sm text-pgray-600 hover:bg-pgray-50">취소</button>
+                <button onClick={save} disabled={saving || preview.willImport === 0}
+                  className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-bold text-white hover:bg-brand-700 disabled:opacity-40">
+                  {saving ? "저장 중…" : `② 저장 (${preview.willImport}건 추가)`}
+                </button>
+              </div>
+            </div>
+            {preview.sample.length > 0 && (
+              <div className="mt-3 overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead className="text-left text-pgray-400">
+                    <tr><th className="py-1 pr-3">유형</th><th className="py-1 pr-3">제목</th><th className="py-1 pr-3">학과</th><th className="py-1 pr-3">신청자</th><th className="py-1">상태</th></tr>
+                  </thead>
+                  <tbody className="text-pgray-700">
+                    {preview.sample.map((s, i) => (
+                      <tr key={i} className="border-t border-brand-100">
+                        <td className="py-1 pr-3 whitespace-nowrap">{s.type}</td>
+                        <td className="py-1 pr-3">{s.title}</td>
+                        <td className="py-1 pr-3 whitespace-nowrap">{s.department}</td>
+                        <td className="py-1 pr-3 whitespace-nowrap">{s.applicant}</td>
+                        <td className="py-1 whitespace-nowrap">{s.status}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {preview.willImport > preview.sample.length && (
+                  <div className="mt-1 text-xs text-pgray-400">…외 {preview.willImport - preview.sample.length}건 (저장 시 모두 추가)</div>
+                )}
+              </div>
+            )}
+            {preview.errors.length > 0 && (
+              <ul className="mt-2 max-h-40 overflow-auto text-xs text-accent-700">{preview.errors.map((e, i) => <li key={i}>• {e}</li>)}</ul>
+            )}
+          </div>
+        )}
       </Card>
 
       {result && (
         <Card className="mt-3 border-t-4 border-t-brand-600 p-5">
           <div className="flex items-center gap-2">
-            <span className="text-lg font-extrabold text-pgray-900">가져오기 완료</span>
-            <Badge color="bg-brand-100 text-brand-700">{result.imported}건 등록</Badge>
+            <span className="text-lg font-extrabold text-pgray-900">✅ 저장 완료</span>
+            <Badge color="bg-brand-100 text-brand-700">{result.imported}건 추가</Badge>
             {result.skipped > 0 && <Badge color="bg-accent-100 text-accent-800">{result.skipped}건 건너뜀</Badge>}
           </div>
           {result.imported === 0 && result.skipped === 0 && (

@@ -3,6 +3,7 @@ import * as XLSX from "xlsx";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser, isManager } from "@/lib/session";
 import { audit } from "@/lib/audit";
+import { snapshotAds } from "@/lib/ads-backup";
 
 export const runtime = "nodejs";
 
@@ -37,6 +38,9 @@ export async function POST(req: Request) {
   const file = form.get("file");
   if (!(file instanceof File)) return NextResponse.json({ error: "엑셀/CSV 파일이 필요합니다." }, { status: 400 });
 
+  const { searchParams } = new URL(req.url);
+  const mode = searchParams.get("mode") === "commit" ? "commit" : "preview";
+
   let rows: Record<string, unknown>[];
   try {
     const buf = Buffer.from(await file.arrayBuffer());
@@ -47,7 +51,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "파일을 읽을 수 없습니다. 양식(xlsx/csv)을 확인해 주세요." }, { status: 400 });
   }
 
-  let imported = 0;
+  // 1) 파싱 + 검증 (DB에 쓰지 않음)
+  const valid: { title: string; medium: string; amount: number; executedAt: Date }[] = [];
   const errors: string[] = [];
   for (let i = 0; i < rows.length; i++) {
     const r = rows[i];
@@ -68,16 +73,35 @@ export async function POST(req: Request) {
       errors.push(`${line}행: ${problems.join(", ")} 확인 필요`);
       continue;
     }
+    valid.push({ title, medium, amount, executedAt: executedAt! });
+  }
+
+  // 2) 미리보기 모드: 저장하지 않고 결과만 반환
+  if (mode === "preview") {
+    const ym = (d: Date) => `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, "0")}`;
+    return NextResponse.json({
+      mode: "preview",
+      willImport: valid.length,
+      skipped: errors.length,
+      errors: errors.slice(0, 30),
+      sample: valid.slice(0, 5).map((v) => ({ title: v.title, medium: v.medium, amount: v.amount, month: ym(v.executedAt) })),
+    });
+  }
+
+  // 3) 저장 모드: 기존 내역은 그대로 두고 '추가'만 한다(삭제 없음)
+  let imported = 0;
+  for (const v of valid) {
     try {
       await prisma.adSpend.create({
-        data: { title, medium, amount, executedAt: executedAt!, department: "대외협력팀" },
+        data: { title: v.title, medium: v.medium, amount: v.amount, executedAt: v.executedAt, department: "대외협력팀" },
       });
       imported++;
     } catch (e) {
-      errors.push(`${line}행: 등록 실패 (${(e as Error).message.slice(0, 50)})`);
+      errors.push(`저장 실패: ${v.title} (${(e as Error).message.slice(0, 40)})`);
     }
   }
 
   await audit({ userId: user.id, action: "AD_SPEND_IMPORT", afterValue: `imported=${imported}` });
-  return NextResponse.json({ imported, skipped: errors.length, errors: errors.slice(0, 30) });
+  await snapshotAds(); // 추가 후 자동 백업
+  return NextResponse.json({ mode: "commit", imported, skipped: errors.length, errors: errors.slice(0, 30) });
 }
