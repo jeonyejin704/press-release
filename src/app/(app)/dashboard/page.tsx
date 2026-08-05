@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { Card, StatusBadge, Badge, EmptyState } from "@/components/ui";
 import { MonthlyTrend, TypePie, DepartmentBar, AdSpendTrend } from "@/components/DashboardCharts";
 import { DashboardNews } from "@/components/DashboardNews";
+import { DashboardBgm } from "@/components/DashboardBgm";
 import { REQUEST_TYPE_LABELS, REQUEST_TYPES, type RequestType } from "@/lib/enums";
 
 export const dynamic = "force-dynamic";
@@ -71,7 +72,9 @@ export default async function DashboardPage({
           </p>
         </div>
 
-        {/* 기간 설정 */}
+        {/* 기간 설정 + 배경음악 */}
+        <div className="flex flex-wrap items-end gap-2">
+        <DashboardBgm />
         <form method="get" className="flex flex-wrap items-end gap-2">
           {bucket && <input type="hidden" name="bucket" value={bucket} />}
           <label className="text-xs text-pgray-500">
@@ -91,6 +94,7 @@ export default async function DashboardPage({
             </Link>
           )}
         </form>
+        </div>
       </div>
 
       {/* ── 1행: KPI (클릭 시 목록) ─────────────── */}
@@ -142,25 +146,29 @@ export default async function DashboardPage({
           <MonthlyTrend data={d.monthly} />
         </Card>
         <Card className="border-t-4 border-t-brand-600 p-5">
-          <div className="mb-2 flex items-center justify-between">
+          <div className="mb-1 flex items-center justify-between">
             <div className="text-base font-bold text-pgray-900">홍보 유형별 비율</div>
             <Link href="/dashboard/journals" className="text-xs font-medium text-brand-600 hover:underline">
               연구성과 저널 상세 →
             </Link>
           </div>
+          <p className="mb-2 text-[11px] text-pgray-400">각 조각을 클릭하면 저널 게재 현황을 볼 수 있어요.</p>
           {d.byType.length ? (
             <TypePie data={d.byType} linkMap={typeLinkMap} />
           ) : (
             <EmptyState title="데이터 없음" />
           )}
-          <p className="mt-1 text-center text-[11px] text-pgray-400">각 조각을 클릭하면 저널 게재 현황을 볼 수 있어요.</p>
         </Card>
-        <Card className="border-t-4 border-t-brand-600 p-5">
+        <Card className="flex flex-col border-t-4 border-t-brand-600 p-5">
           <SectionTitle>
             학과별 신청 건수 <span className="text-brand-600">TOP 5</span>
             <span className="ml-1 text-xs font-normal text-pgray-400">{ty} 기준 · {ty - 1} 비교</span>
           </SectionTitle>
-          {d.byDepartment.length ? <DepartmentBar data={d.byDepartment.slice(0, 5)} /> : <EmptyState title="데이터 없음" />}
+          <div className="flex flex-1 items-center">
+            <div className="w-full">
+              {d.byDepartment.length ? <DepartmentBar data={d.byDepartment.slice(0, 5)} /> : <EmptyState title="데이터 없음" />}
+            </div>
+          </div>
         </Card>
       </div>
 

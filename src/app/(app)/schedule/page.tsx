@@ -26,6 +26,24 @@ function makeIsDone(startOfToday: number) {
     item.expectedPublishDate ? new Date(item.expectedPublishDate).getTime() < startOfToday : false;
 }
 
+// 유형별 '주인공' 이름 추출 (없으면 신청자 이름으로 대체)
+/* eslint-disable @typescript-eslint/no-explicit-any */
+function personOf(it: any): string {
+  const byType =
+    it.type === "RESEARCH"
+      ? it.research?.correspondingAuthorName || it.research?.firstAuthorName
+      : it.type === "AWARD"
+        ? it.award?.awardeeName
+        : it.type === "APPOINTMENT"
+          ? it.appointment?.appointeeName
+          : it.type === "PERSONAL_NEWS"
+            ? it.personalNews?.subjectName
+            : it.type === "EVENT"
+              ? it.event?.who || it.event?.host
+              : null;
+  return (byType || it.applicant?.name || "").trim();
+}
+
 export default async function SchedulePage({
   searchParams,
 }: {
@@ -46,7 +64,15 @@ export default async function SchedulePage({
 
   const items = await prisma.pressRequest.findMany({
     where: { expectedPublishDate: { gte: monthStart, lt: monthEnd } },
-    select: { id: true, title: true, type: true, status: true, expectedPublishDate: true, department: true },
+    select: {
+      id: true, title: true, type: true, status: true, expectedPublishDate: true, department: true,
+      applicant: { select: { name: true } },
+      research: { select: { correspondingAuthorName: true, firstAuthorName: true } },
+      award: { select: { awardeeName: true } },
+      appointment: { select: { appointeeName: true } },
+      personalNews: { select: { subjectName: true } },
+      event: { select: { who: true, host: true } },
+    },
     orderBy: { expectedPublishDate: "asc" },
   });
 
@@ -114,17 +140,22 @@ export default async function SchedulePage({
                       <span className={isToday(d) ? "rounded-full bg-brand-600 px-1.5 py-0.5 font-bold text-white" : "text-pgray-400"}>{d}</span>
                     </div>
                     <div className="flex flex-col gap-1">
-                      {dayItems.slice(0, 4).map((it) => (
-                        <div
-                          key={it.id}
-                          title={it.title}
-                          className={`truncate rounded-md px-1.5 py-1 text-[11px] font-medium ${
-                            isDone(it) ? "bg-pgray-100 text-pgray-500" : "bg-brand-50 text-brand-700"
-                          }`}
-                        >
-                          <span className="font-bold">[{TYPE_PREFIX[it.type as RequestType]}]</span> {it.title}
-                        </div>
-                      ))}
+                      {dayItems.slice(0, 4).map((it) => {
+                        const person = personOf(it);
+                        return (
+                          <div
+                            key={it.id}
+                            title={`${it.title}${person ? ` · ${person}` : ""}`}
+                            className={`flex items-center gap-1 rounded-md px-1.5 py-1 text-[11px] font-medium ${
+                              isDone(it) ? "bg-pgray-100 text-pgray-500" : "bg-brand-50 text-brand-700"
+                            }`}
+                          >
+                            <span className="shrink-0 font-bold">[{TYPE_PREFIX[it.type as RequestType]}]</span>
+                            <span className="min-w-0 flex-1 truncate">{it.title}</span>
+                            {person && <span className="shrink-0 text-[10px] opacity-70">· {person}</span>}
+                          </div>
+                        );
+                      })}
                       {dayItems.length > 4 && <span className="px-1 text-[10px] text-pgray-400">+{dayItems.length - 4}건 더</span>}
                     </div>
                   </Link>
@@ -155,7 +186,9 @@ export default async function SchedulePage({
                       </Badge>
                       <span className="truncate font-medium text-pgray-800">{it.title}</span>
                     </span>
-                    <span className="mt-1 block text-xs text-pgray-400">{it.department ?? ""}</span>
+                    <span className="mt-1 block text-xs text-pgray-400">
+                      {[personOf(it), it.department].filter(Boolean).join(" · ")}
+                    </span>
                   </span>
                   <StatusBadge status={it.status} />
                 </Link>

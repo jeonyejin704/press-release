@@ -186,7 +186,7 @@ async function main() {
   // ── Users ────────────────────────────────────────────────────────────────
   // 고정 ID: DB를 다시 시드해도 로그인 쿠키가 무효화되지 않도록 (리다이렉트 루프 방지)
   const manager = await prisma.user.create({
-    data: { id: "u_manager", email: "pr.manager@postech.ac.kr", name: "전홍보", phone: "010-5555-6666", department: "대외협력팀", role: "PR_MANAGER" },
+    data: { id: "u_manager", email: "pr.manager@postech.ac.kr", name: "전예진", phone: "010-5555-6666", department: "대외협력팀", role: "PR_MANAGER" },
   });
   const admin = await prisma.user.create({
     data: { id: "u_admin", email: "admin@postech.ac.kr", name: "관리자", department: "대외협력팀", role: "ADMIN" },

@@ -6,7 +6,7 @@ import { Card, Button, inputClass } from "@/components/ui";
 
 const DEMO_ACCOUNTS = [
   { email: "prof.kim@postech.ac.kr", label: "신청자 · 김연구 (화학공학과)" },
-  { email: "pr.manager@postech.ac.kr", label: "홍보팀 담당자 · 박홍보" },
+  { email: "pr.manager@postech.ac.kr", label: "대외협력팀 담당자 · 전예진" },
   { email: "admin@postech.ac.kr", label: "관리자" },
 ];
 
