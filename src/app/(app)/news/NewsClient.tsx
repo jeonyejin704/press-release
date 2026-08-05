@@ -6,7 +6,17 @@ import { Card, Button, Badge, EmptyState } from "@/components/ui";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-export function NewsClient({ news, keywords }: { news: any[]; keywords: string[] }) {
+export function NewsClient({
+  news,
+  keywords,
+  provider = "mock",
+  syncError = null,
+}: {
+  news: any[];
+  keywords: string[];
+  provider?: string;
+  syncError?: string | null;
+}) {
   const router = useRouter();
   const [filter, setFilter] = useState<string>("");
   const [busy, setBusy] = useState(false);
@@ -48,13 +58,29 @@ export function NewsClient({ news, keywords }: { news: any[]; keywords: string[]
         <div>
           <h1 className="text-xl font-bold text-slate-800">뉴스 모니터링</h1>
           <p className="text-sm text-slate-500">
-            키워드 기반 언론 보도 현황 · 중요 표시 {importantCount}건
+            네이버 뉴스 실시간 수집 · 키워드 {keywords.length}개 · 중요 표시 {importantCount}건
           </p>
         </div>
         <Button variant="secondary" disabled={busy} onClick={refresh}>
           {busy ? "수집 중…" : "🔄 뉴스 새로고침"}
         </Button>
       </div>
+
+      {/* 실시간 수집 상태 */}
+      {provider === "mock" ? (
+        <div className="mb-3 rounded-lg border border-accent-200 bg-accent-50 px-3 py-2 text-xs text-accent-800">
+          현재 <b>mock(샘플)</b> 모드입니다. 실제 네이버 기사를 보려면 <code>.env</code>에 <code>NEWS_PROVIDER=&quot;naver&quot;</code>와 API 키를 설정하세요.
+        </div>
+      ) : syncError ? (
+        <div className="mb-3 rounded-lg border border-brand-200 bg-brand-50 px-3 py-2 text-xs text-brand-700">
+          ⚠️ 네이버 연동 오류: {syncError} — API 키/엔드포인트를 확인해 주세요.
+        </div>
+      ) : (
+        <div className="mb-3 flex items-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50 px-3 py-2 text-xs text-brand-700">
+          <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-brand-500" />
+          네이버 뉴스 실시간 연동 중 — 페이지에 들어올 때마다 최신 기사를 수집합니다.
+        </div>
+      )}
 
       <div className="mb-4 flex flex-wrap gap-2">
         <FilterChip label="전체" active={!filter} onClick={() => setFilter("")} />

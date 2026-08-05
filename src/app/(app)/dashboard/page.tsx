@@ -7,6 +7,7 @@ import { Card, StatusBadge, Badge, EmptyState } from "@/components/ui";
 import { MonthlyTrend, TypePie, DepartmentBar, AdSpendTrend } from "@/components/DashboardCharts";
 import { DashboardNews } from "@/components/DashboardNews";
 import { DashboardBgm } from "@/components/DashboardBgm";
+import { syncNaverNews } from "@/lib/news/sync";
 import { REQUEST_TYPE_LABELS, REQUEST_TYPES, type RequestType } from "@/lib/enums";
 
 export const dynamic = "force-dynamic";
@@ -26,8 +27,10 @@ export default async function DashboardPage({
   const bucket = sp.bucket && BUCKETS[sp.bucket] ? sp.bucket : undefined;
 
   const d = await getDashboardData({ from, to });
+  // 대시보드 진입 시에도 최신 기사 수집(뉴스 페이지보다 길게 5분 스로틀 — 대시보드는 자주 열림)
+  await syncNaverNews({ throttleMs: 5 * 60_000 }).catch(() => null);
   const [news, keywords] = await Promise.all([
-    prisma.newsItem.findMany({ orderBy: { publishedAt: "desc" }, take: 30 }),
+    prisma.newsItem.findMany({ orderBy: { publishedAt: "desc" }, take: 20 }),
     prisma.newsKeyword.findMany({ where: { active: true }, orderBy: { createdAt: "asc" } }),
   ]);
 
