@@ -25,6 +25,9 @@ export interface NewsProvider {
 // 기본 모니터링 키워드
 export const DEFAULT_KEYWORDS = ["포스텍", "POSTECH", "포항공과대학교", "포항공대"];
 
+// mock(샘플) 기사 식별용 호스트 — 실제 연동 후 이 도메인 기사만 골라 삭제한다.
+export const MOCK_URL_HOST = "news.example.com";
+
 // ── Mock ────────────────────────────────────────────────────────────────────
 export class MockNewsProvider implements NewsProvider {
   readonly name = "mock";
@@ -39,7 +42,7 @@ export class MockNewsProvider implements NewsProvider {
           title: `${kw} 연구팀, 새로운 성과 발표… 학계 주목 (${idx + 1})`,
           mediaName: media[idx % media.length],
           publishedAt: new Date(now - idx * 1000 * 60 * 60 * 6),
-          url: `https://news.example.com/${encodeURIComponent(kw)}/${idx + 1}`,
+          url: `https://${MOCK_URL_HOST}/${encodeURIComponent(kw)}/${idx + 1}`,
           summary: `${kw}가 발표한 연구 성과가 국내외 언론의 주목을 받고 있다.`,
           keyword: kw,
         });

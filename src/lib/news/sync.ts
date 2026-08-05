@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { resolveNewsProvider, DEFAULT_KEYWORDS } from "@/lib/news";
+import { resolveNewsProvider, DEFAULT_KEYWORDS, MOCK_URL_HOST } from "@/lib/news";
 
 // 마지막 동기화 시각(모듈 메모리). 짧은 시간 내 반복 요청을 눌러 API 호출 한도를 아낀다.
 let lastSyncAt = 0;
@@ -19,6 +19,11 @@ export async function syncNaverNews(opts: { throttleMs?: number } = {}): Promise
     return { added: 0, provider: provider.name, skipped: true };
   }
   lastSyncAt = now;
+
+  // 실제 네이버 연동이면 예전에 쌓인 mock(샘플) 기사를 정리한다.
+  if (provider.name === "naver") {
+    await prisma.newsItem.deleteMany({ where: { url: { contains: MOCK_URL_HOST } } }).catch(() => null);
+  }
 
   // 키워드가 하나도 없을 때만 기본 키워드(포스텍/POSTECH/포항공과대학교/포항공대) 최초 1회 시딩.
   // (사용자가 삭제한 키워드가 매번 되살아나지 않도록 upsert 하지 않는다)
