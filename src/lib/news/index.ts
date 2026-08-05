@@ -135,6 +135,7 @@ export class NaverNewsProvider implements NewsProvider {
   }
 }
 
+// 환경변수(.env)만 보고 제공자 결정 (구버전 호환용).
 export function getNewsProvider(): NewsProvider {
   const provider = (process.env.NEWS_PROVIDER ?? "mock").toLowerCase();
   if (provider === "naver") {
@@ -142,6 +143,20 @@ export function getNewsProvider(): NewsProvider {
     const secret = process.env.NAVER_CLIENT_SECRET;
     if (id && secret) return new NaverNewsProvider(id, secret);
     console.warn("[news] NEWS_PROVIDER=naver 이지만 NAVER_CLIENT_ID/SECRET 이 없어 mock 사용");
+  }
+  return new MockNewsProvider();
+}
+
+// 앱 내 설정(브라우저에서 저장) 우선, 없으면 .env 를 확인해 제공자 결정.
+export async function resolveNewsProvider(): Promise<NewsProvider> {
+  const { readSettings } = await import("@/lib/settings");
+  const s = await readSettings();
+  const provider = (s.NEWS_PROVIDER ?? process.env.NEWS_PROVIDER ?? "mock").toLowerCase();
+  if (provider === "naver") {
+    const id = s.NAVER_CLIENT_ID || process.env.NAVER_CLIENT_ID;
+    const secret = s.NAVER_CLIENT_SECRET || process.env.NAVER_CLIENT_SECRET;
+    const url = s.NAVER_SEARCH_URL || process.env.NAVER_SEARCH_URL;
+    if (id && secret) return new NaverNewsProvider(id, secret, url || undefined);
   }
   return new MockNewsProvider();
 }

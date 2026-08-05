@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { getNewsProvider, DEFAULT_KEYWORDS } from "@/lib/news";
+import { resolveNewsProvider, DEFAULT_KEYWORDS } from "@/lib/news";
 
 // 마지막 동기화 시각(모듈 메모리). 짧은 시간 내 반복 요청을 눌러 API 호출 한도를 아낀다.
 let lastSyncAt = 0;
@@ -13,7 +13,7 @@ export type NewsSyncResult = {
 
 // 네이버(또는 mock) 뉴스를 가져와 DB에 upsert. URL 기준으로 중복 제거.
 export async function syncNaverNews(opts: { throttleMs?: number } = {}): Promise<NewsSyncResult> {
-  const provider = getNewsProvider();
+  const provider = await resolveNewsProvider();
   const now = Date.now();
   if (opts.throttleMs && now - lastSyncAt < opts.throttleMs) {
     return { added: 0, provider: provider.name, skipped: true };
