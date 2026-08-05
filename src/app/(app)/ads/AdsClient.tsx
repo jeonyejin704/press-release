@@ -135,9 +135,9 @@ export function AdsClient({ ads, summary, focusMonth }: { ads: any[]; summary: a
 
       {/* 요약 */}
       <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Card className="p-4"><div className="text-sm text-pgray-500">{summary.thisYear} 집행 합계</div>
+        <Card className="p-4"><div className="text-sm text-pgray-500">{summary.thisYear}학년도 집행 합계 <span className="text-xs text-pgray-400">(3월~2월)</span></div>
           <div className="mt-1 font-display text-2xl text-brand-700">{manwon(summary.thisYearTotal)}</div></Card>
-        <Card className="p-4"><div className="text-sm text-pgray-500">{summary.thisYear - 1} 집행 합계</div>
+        <Card className="p-4"><div className="text-sm text-pgray-500">{summary.thisYear - 1}학년도 집행 합계</div>
           <div className="mt-1 font-display text-2xl text-accent-600">{manwon(summary.lastYearTotal)}</div></Card>
         <Card className="p-4"><div className="text-sm text-pgray-500">전년 대비</div>
           <div className="mt-1 font-display text-2xl text-pgray-700">
@@ -207,7 +207,7 @@ export function AdsClient({ ads, summary, focusMonth }: { ads: any[]; summary: a
       <div className="grid gap-4 lg:grid-cols-3">
         {/* 매체별 (올해) */}
         <Card className="p-5">
-          <div className="mb-3 text-base font-bold text-pgray-900">{summary.thisYear} 매체별 집행</div>
+          <div className="mb-3 text-base font-bold text-pgray-900">{summary.thisYear}학년도 매체별 집행</div>
           {summary.mediums.length === 0 ? <EmptyState title="데이터 없음" /> : (
             <div className="space-y-2">
               {summary.mediums.map((m: any) => (

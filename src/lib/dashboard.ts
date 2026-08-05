@@ -128,30 +128,36 @@ export async function getDashboardData(range: DashboardRange = {}) {
 
   const topDept = byDepartment[0]?.label ?? "-";
 
-  // ── 광고비 집행 (월별 올해/전년 + 연간 합계) ──────────────────────────────
+  // ── 광고비 집행 (학년도 3월~다음해 2월 기준, 월별 올해/전년 + 연간 합계) ──
   const ads = await prisma.adSpend.findMany({ select: { amount: true, executedAt: true } });
-  const thisYearNum = now.getFullYear();
+  // 학년도: 3월(월 index 2)~다음해 2월. 1·2월은 전년도 학년도에 속함.
+  const fiscalYearOf = (d: Date) => (d.getMonth() >= 2 ? d.getFullYear() : d.getFullYear() - 1);
+  const currentFY = fiscalYearOf(now);
   const adMonthYoY = new Map<number, number>(); // monthKey -> 합계
   let adThisYearTotal = 0;
   let adLastYearTotal = 0;
   for (const a of ads) {
     const dt = new Date(a.executedAt);
     adMonthYoY.set(monthKey(dt), (adMonthYoY.get(monthKey(dt)) ?? 0) + a.amount);
-    // 합계는 달력연도 기준 (광고비 페이지와 일치)
-    if (dt.getFullYear() === thisYearNum) adThisYearTotal += a.amount;
-    else if (dt.getFullYear() === thisYearNum - 1) adLastYearTotal += a.amount;
+    const fy = fiscalYearOf(dt);
+    if (fy === currentFY) adThisYearTotal += a.amount;
+    else if (fy === currentFY - 1) adLastYearTotal += a.amount;
   }
+  // 학년도 월 순서: 3,4,…,12,1,2 (i=0 → 3월). 1·2월은 학년도+1 달력연도.
+  const monthOfFiscalPos = (i: number) => (2 + i) % 12; // 0-indexed month
+  const calYearForFiscal = (fyStart: number, i: number) => (monthOfFiscalPos(i) >= 2 ? fyStart : fyStart + 1);
   const adMonthly: { month: string; thisYear: number; lastYear: number; ymThis: string; ymLast: string }[] = [];
-  for (let i = 11; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const k = monthKey(d);
-    const mm = String(d.getMonth() + 1).padStart(2, "0");
+  for (let i = 0; i < 12; i++) {
+    const mi = monthOfFiscalPos(i);
+    const yThis = calYearForFiscal(currentFY, i);
+    const yLast = calYearForFiscal(currentFY - 1, i);
+    const mm = String(mi + 1).padStart(2, "0");
     adMonthly.push({
       month: `${mm}월`,
-      thisYear: adMonthYoY.get(k) ?? 0,
-      lastYear: adMonthYoY.get(k - 12) ?? 0,
-      ymThis: `${d.getFullYear()}-${mm}`,
-      ymLast: `${d.getFullYear() - 1}-${mm}`,
+      thisYear: adMonthYoY.get(yThis * 12 + mi) ?? 0,
+      lastYear: adMonthYoY.get(yLast * 12 + mi) ?? 0,
+      ymThis: `${yThis}-${mm}`,
+      ymLast: `${yLast}-${mm}`,
     });
   }
 
@@ -166,6 +172,7 @@ export async function getDashboardData(range: DashboardRange = {}) {
       monthly: adMonthly,
       thisYearTotal: adThisYearTotal,
       lastYearTotal: adLastYearTotal,
+      fiscalYear: currentFY,
       count: ads.length,
     },
     requests: inRange.map(serialize), // 기간 필터된 전체(현황 목록용)

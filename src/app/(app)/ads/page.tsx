@@ -17,16 +17,18 @@ export default async function AdsPage({
   const ads = await prisma.adSpend.findMany({ orderBy: { executedAt: "desc" } });
 
   const now = new Date();
-  const thisYear = now.getFullYear();
+  // 학년도: 3월(월 index 2)~다음해 2월. 1·2월은 전년도 학년도.
+  const fiscalYearOf = (d: Date) => (d.getMonth() >= 2 ? d.getFullYear() : d.getFullYear() - 1);
+  const thisYear = fiscalYearOf(now);
   let thisYearTotal = 0;
   let lastYearTotal = 0;
   const byMedium = new Map<string, number>();
   for (const a of ads) {
-    const y = new Date(a.executedAt).getFullYear();
-    if (y === thisYear) {
+    const fy = fiscalYearOf(new Date(a.executedAt));
+    if (fy === thisYear) {
       thisYearTotal += a.amount;
       byMedium.set(a.medium, (byMedium.get(a.medium) ?? 0) + a.amount);
-    } else if (y === thisYear - 1) {
+    } else if (fy === thisYear - 1) {
       lastYearTotal += a.amount;
     }
   }

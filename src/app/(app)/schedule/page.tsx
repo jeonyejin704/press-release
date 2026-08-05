@@ -19,11 +19,11 @@ const TYPE_PREFIX: Record<RequestType, string> = {
   OTHER: "기타",
 };
 
-// 배포 완료(지난) 판단: 상태가 배포 완료이거나, 예상 배포일이 오늘 이전이면 '완료'로 표시
+// 배포 완료(지난) 판단: 예상 배포일이 오늘 이전이면 '완료(회색)', 오늘 이후면 '예정(자주)'.
+// 달력이므로 날짜만 기준으로 판단한다(아직 도래하지 않은 날짜는 항상 '예정').
 function makeIsDone(startOfToday: number) {
   return (item: { status: string; expectedPublishDate: Date | null }) =>
-    item.status === "DISTRIBUTED" ||
-    (item.expectedPublishDate ? new Date(item.expectedPublishDate).getTime() < startOfToday : false);
+    item.expectedPublishDate ? new Date(item.expectedPublishDate).getTime() < startOfToday : false;
 }
 
 export default async function SchedulePage({

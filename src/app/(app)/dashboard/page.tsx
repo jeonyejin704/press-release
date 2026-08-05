@@ -157,10 +157,10 @@ export default async function DashboardPage({
         </Card>
         <Card className="border-t-4 border-t-brand-600 p-5">
           <SectionTitle>
-            학과별 신청 건수
-            <span className="ml-1 text-xs font-normal text-pgray-400">{ty} · {ty - 1} 비교 (최다: {d.metrics.topDept})</span>
+            학과별 신청 건수 <span className="text-brand-600">TOP 5</span>
+            <span className="ml-1 text-xs font-normal text-pgray-400">{ty} 기준 · {ty - 1} 비교</span>
           </SectionTitle>
-          {d.byDepartment.length ? <DepartmentBar data={d.byDepartment} /> : <EmptyState title="데이터 없음" />}
+          {d.byDepartment.length ? <DepartmentBar data={d.byDepartment.slice(0, 5)} /> : <EmptyState title="데이터 없음" />}
         </Card>
       </div>
 
@@ -169,15 +169,15 @@ export default async function DashboardPage({
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <SectionTitle>
             광고비 집행 현황
-            <span className="ml-1 text-xs font-normal text-pgray-400">{ty} · {ty - 1} 월별 비교</span>
+            <span className="ml-1 text-xs font-normal text-pgray-400">{d.adSpend.fiscalYear}학년도(3월~2월) · 전년 월별 비교</span>
           </SectionTitle>
           <div className="flex items-center gap-4">
             <div className="text-right">
-              <div className="text-[11px] text-pgray-400">{ty} 집행 합계</div>
+              <div className="text-[11px] text-pgray-400">{d.adSpend.fiscalYear}학년도 집행 합계</div>
               <div className="font-display text-xl text-brand-700">{manwon(d.adSpend.thisYearTotal)}</div>
             </div>
             <div className="text-right">
-              <div className="text-[11px] text-pgray-400">{ty - 1} 집행 합계</div>
+              <div className="text-[11px] text-pgray-400">{d.adSpend.fiscalYear - 1}학년도 집행 합계</div>
               <div className="font-display text-xl text-accent-600">{manwon(d.adSpend.lastYearTotal)}</div>
             </div>
             <Link href="/ads" className="text-xs font-medium text-brand-600 hover:underline">
