@@ -8,8 +8,8 @@ import { isRequestStatus, type RequestStatus, type NotificationType } from "@/li
 
 // Which statuses notify the applicant, and with what message.
 const APPLICANT_NOTIFY: Partial<Record<RequestStatus, { type: NotificationType; title: string; msg: string }>> = {
-  MATERIAL_REQUESTED: { type: "MATERIAL_REQUESTED", title: "자료 보완 요청", msg: "홍보팀이 추가 자료를 요청했습니다. 상세 페이지에서 확인해 주세요." },
-  APPLICANT_REVIEW: { type: "REVIEW_REQUESTED", title: "검토 요청", msg: "홍보팀이 보도자료 검토를 요청했습니다." },
+  MATERIAL_REQUESTED: { type: "MATERIAL_REQUESTED", title: "자료 보완 요청", msg: "대외협력팀이 추가 자료를 요청했습니다. 상세 페이지에서 확인해 주세요." },
+  APPLICANT_REVIEW: { type: "REVIEW_REQUESTED", title: "검토 요청", msg: "대외협력팀이 보도자료 검토를 요청했습니다." },
   ENGLISH_REVIEW_REQUESTED: { type: "ENGLISH_REVIEW_REQUESTED", title: "영문본 검토 요청", msg: "영문 보도자료 검토를 요청했습니다." },
   KOREAN_FINAL_CONFIRMED: { type: "KOREAN_FINAL_CONFIRMED", title: "국문 최종본 확정", msg: "국문 보도자료 최종본이 확정되었습니다." },
   FINAL_COMPLETED: { type: "FINAL_COMPLETED", title: "최종 완료", msg: "보도자료가 최종 완료 처리되었습니다." },

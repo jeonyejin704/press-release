@@ -6,8 +6,10 @@ import { prisma } from "@/lib/prisma";
 import { Card, StatusBadge, Badge, EmptyState } from "@/components/ui";
 import { MonthlyTrend, TypePie, DepartmentBar, AdSpendTrend } from "@/components/DashboardCharts";
 import { DashboardNews } from "@/components/DashboardNews";
-import { DashboardBgm } from "@/components/DashboardBgm";
 import { syncNaverNews } from "@/lib/news/sync";
+
+// 유형별 비율 도넛과 색을 맞추기 위한 팔레트(DashboardCharts COLORS 와 동일 순서)
+const PIE_COLORS = ["#a61955", "#f6a700", "#7a7772", "#cd527d", "#fcc74c", "#b7b4b0"];
 import { REQUEST_TYPE_LABELS, REQUEST_TYPES, type RequestType } from "@/lib/enums";
 
 export const dynamic = "force-dynamic";
@@ -73,9 +75,7 @@ export default async function DashboardPage({
           </p>
         </div>
 
-        {/* 기간 설정 + 배경음악 */}
-        <div className="flex flex-wrap items-end gap-2">
-        <DashboardBgm />
+        {/* 기간 설정 */}
         <form method="get" className="flex flex-wrap items-end gap-2">
           {bucket && <input type="hidden" name="bucket" value={bucket} />}
           <label className="text-xs text-pgray-500">
@@ -95,7 +95,6 @@ export default async function DashboardPage({
             </Link>
           )}
         </form>
-        </div>
       </div>
 
       {/* ── 1행: KPI 3종 (올해 / 작년 비교, 클릭 시 목록) ─────────────── */}
@@ -140,17 +139,39 @@ export default async function DashboardPage({
         </Card>
       )}
 
-      {/* ── 월별 신청 추이 (가로가 길어 전체 너비) ─────────────── */}
-      <Card className="border-t-4 border-t-brand-600 p-5">
-        <SectionTitle>
-          월별 신청 추이
-          <span className="ml-1 text-xs font-normal text-pgray-400">{d.kpi.year}학년도(3월~) · 작년 동월 비교</span>
-        </SectionTitle>
-        <MonthlyTrend data={d.monthly} />
-      </Card>
-
-      {/* ── 홍보 유형별 비율 + 학과별 TOP5 (좁은 2단) ─────────────── */}
+      {/* ── 2행: 유형별 건수(왼쪽) + 유형별 비율 도넛(오른쪽) ─────────── */}
       <div className="grid gap-4 lg:grid-cols-2">
+        <Card className="flex flex-col border-t-4 border-t-brand-600 p-5">
+          <SectionTitle>홍보 유형별 신청 건수</SectionTitle>
+          {d.byType.length ? (
+            <div className="mt-1 flex flex-1 flex-col justify-center divide-y divide-pgray-100">
+              {d.byType.map((t, i) => (
+                <Link
+                  key={t.key}
+                  href={typeLinkMap[t.key] ?? `/requests?type=${t.key}`}
+                  className="flex items-center justify-between py-2.5 hover:bg-pgray-50"
+                >
+                  <span className="flex items-center gap-2">
+                    <span className="inline-block h-3 w-3 rounded-sm" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
+                    <span className="text-sm font-medium text-pgray-700">{t.label}</span>
+                  </span>
+                  <span className="text-sm text-pgray-500">
+                    <span className="font-display text-lg text-pgray-800">{t.count}</span>건
+                    <span className="ml-1.5 text-xs text-pgray-400">({t.ratio}%)</span>
+                  </span>
+                </Link>
+              ))}
+              <div className="flex items-center justify-between py-2.5">
+                <span className="text-sm font-bold text-pgray-700">합계</span>
+                <span className="text-sm text-pgray-500">
+                  <span className="font-display text-lg text-brand-700">{d.byType.reduce((s, t) => s + t.count, 0)}</span>건
+                </span>
+              </div>
+            </div>
+          ) : (
+            <EmptyState title="데이터 없음" />
+          )}
+        </Card>
         <Card className="border-t-4 border-t-brand-600 p-5">
           <div className="mb-1 flex items-center justify-between">
             <div className="text-base font-bold text-pgray-900">홍보 유형별 비율</div>
@@ -164,6 +185,17 @@ export default async function DashboardPage({
           ) : (
             <EmptyState title="데이터 없음" />
           )}
+        </Card>
+      </div>
+
+      {/* ── 3행: 월별 신청 추이(왼쪽) + 학과별 신청 건수(오른쪽) ─────────── */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card className="border-t-4 border-t-brand-600 p-5">
+          <SectionTitle>
+            월별 신청 추이
+            <span className="ml-1 text-xs font-normal text-pgray-400">{d.kpi.year}학년도(3월~) · 작년 동월 비교</span>
+          </SectionTitle>
+          <MonthlyTrend data={d.monthly} />
         </Card>
         <Card className="flex flex-col border-t-4 border-t-brand-600 p-5">
           <SectionTitle>

@@ -92,8 +92,8 @@ export function TypePie({
           nameKey="label"
           cx="50%"
           cy="50%"
-          innerRadius="42%"
-          outerRadius="72%"
+          innerRadius="24%"
+          outerRadius="74%"
           paddingAngle={2}
           label={makeLabel()}
           labelLine={false}

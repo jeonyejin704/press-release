@@ -45,8 +45,8 @@ export function Sidebar({ user, unreadCount }: { user: NavUser; unreadCount: num
     <>
       {/* ── Desktop: 좌측 사이드바 ── */}
       <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-pgray-100 bg-white px-3 py-5 md:flex">
-        <Link href="/" className="mb-6 px-2 font-display text-2xl text-brand-600">
-          PressFlow
+        <Link href="/" className="mb-6 px-2 font-display text-xl leading-tight text-brand-600">
+          POSTECH<br />언론홍보
         </Link>
         <nav className="flex flex-1 flex-col gap-1">
           {links.map((l) => {
@@ -84,7 +84,7 @@ export function Sidebar({ user, unreadCount }: { user: NavUser; unreadCount: num
       {/* ── Mobile: 상단 바 ── */}
       <header className="border-b border-pgray-100 bg-white md:hidden">
         <div className="flex items-center justify-between px-4 py-3">
-          <Link href="/" className="font-display text-xl text-brand-600">PressFlow</Link>
+          <Link href="/" className="font-display text-lg text-brand-600">POSTECH 언론홍보</Link>
           <div className="flex items-center gap-2">
             <span className="text-xs text-pgray-500">{user.name}</span>
             <button onClick={logout} className="rounded-lg px-2 py-1 text-xs text-pgray-400 hover:bg-pgray-100">로그아웃</button>

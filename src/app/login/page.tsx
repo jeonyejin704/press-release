@@ -28,11 +28,13 @@ export default function LoginPage() {
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         setError(data.error ?? "로그인에 실패했습니다.");
+        setLoading(false);
         return;
       }
-      router.push("/");
-      router.refresh();
-    } finally {
+      // 쿠키가 반영된 상태로 전체 페이지를 새로 로드해 한 번에 로그인되도록 함
+      window.location.href = "/";
+    } catch {
+      setError("로그인에 실패했습니다.");
       setLoading(false);
     }
   }
@@ -41,8 +43,8 @@ export default function LoginPage() {
     <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-brand-800 to-brand-600 p-4">
       <Card className="w-full max-w-md p-8">
         <div className="mb-6 text-center">
-          <div className="font-display text-4xl text-brand-600">PressFlow</div>
-          <div className="mt-1 text-sm text-pgray-500">POSTECH 언론 홍보 관리 시스템</div>
+          <div className="font-display text-3xl text-brand-600">POSTECH 언론홍보</div>
+          <div className="mt-1 text-sm text-pgray-500">대외협력팀 언론 홍보 관리 시스템</div>
         </div>
 
         <form

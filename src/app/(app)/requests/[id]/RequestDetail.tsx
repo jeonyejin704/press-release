@@ -277,7 +277,7 @@ function DraftPanel({
       <p className="mt-1 text-sm text-pgray-500">
         {isManager
           ? "신청자가 올린 초안을 내려받아 보완한 뒤, 보완본을 다시 업로드하세요."
-          : "양식을 내려받아 작성한 보도자료 초안을 업로드하세요. 홍보팀이 검토·보완합니다."}
+          : "양식을 내려받아 작성한 보도자료 초안을 업로드하세요. 대외협력팀이 검토·보완합니다."}
       </p>
 
       <div className="mt-3 space-y-2">

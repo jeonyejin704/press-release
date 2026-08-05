@@ -139,16 +139,6 @@ export function RequestForm({ type }: { type: RequestType }) {
           <Field label="홍보 희망일">
             <input type="date" className={inputClass} value={common.desiredPublishDate} onChange={(e) => setCommon({ ...common, desiredPublishDate: e.target.value })} />
           </Field>
-          <div className="flex items-end gap-4">
-            <label className="flex items-center gap-2 text-sm text-pgray-600">
-              <input type="checkbox" checked={common.isUrgent} onChange={(e) => setCommon({ ...common, isUrgent: e.target.checked })} />
-              긴급
-            </label>
-            <label className="flex items-center gap-2 text-sm text-pgray-600">
-              <input type="checkbox" checked={common.publicDisclosureAllowed} onChange={(e) => setCommon({ ...common, publicDisclosureAllowed: e.target.checked })} />
-              대외 공개 가능
-            </label>
-          </div>
           <div className="sm:col-span-2">
             <Field label="참고 메모">
               <textarea className={inputClass} rows={2} value={common.note} onChange={(e) => setCommon({ ...common, note: e.target.value })} />

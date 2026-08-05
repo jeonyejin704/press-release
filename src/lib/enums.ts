@@ -6,7 +6,7 @@ export type Role = (typeof ROLES)[number];
 
 export const ROLE_LABELS: Record<Role, string> = {
   APPLICANT: "홍보 신청자",
-  PR_MANAGER: "홍보팀 담당자",
+  PR_MANAGER: "대외협력팀 담당자",
   ADMIN: "관리자",
 };
 
@@ -50,7 +50,7 @@ export type RequestStatus = (typeof REQUEST_STATUSES)[number];
 export const REQUEST_STATUS_LABELS: Record<RequestStatus, string> = {
   DRAFT: "초안 작성 중",
   SUBMITTED: "신청 완료",
-  PR_REVIEW: "홍보팀 검토 중",
+  PR_REVIEW: "대외협력팀 검토 중",
   MATERIAL_REQUESTED: "자료 보완 요청",
   APPLICANT_REVIEW: "연구진 검토 요청",
   KOREAN_FINAL_CONFIRMED: "국문 최종본 확정",
