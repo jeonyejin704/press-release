@@ -20,7 +20,10 @@ export function NewsClient({ news, keywords }: { news: any[]; keywords: string[]
       const res = await fetch("/api/news/refresh", { method: "POST" });
       const d = await res.json().catch(() => ({}));
       if (res.ok) {
-        alert(`${d.added}건의 새 기사를 수집했습니다. (provider: ${d.provider})`);
+        let msg = `${d.added}건의 새 기사를 수집했습니다. (provider: ${d.provider})`;
+        if (d.note) msg += `\n\n${d.note}`;
+        if (d.error) msg += `\n\n⚠️ 연동 오류: ${d.error}\n(API 키 또는 엔드포인트를 확인해 주세요.)`;
+        alert(msg);
         router.refresh();
       } else {
         alert(d.error ?? "새로고침 실패");

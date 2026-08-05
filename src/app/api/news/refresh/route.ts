@@ -43,5 +43,13 @@ export async function POST() {
       // duplicate url (unique) — skip
     }
   }
-  return NextResponse.json({ added, provider: provider.name });
+
+  // 실 연동(naver)인데 0건이면 원인(키 오류/엔드포인트 등)을 함께 안내
+  const error = provider.lastError ?? null;
+  return NextResponse.json({
+    added,
+    provider: provider.name,
+    ...(error ? { error } : {}),
+    ...(provider.name === "mock" ? { note: "현재 mock(샘플) 모드입니다. 실제 기사를 보려면 NEWS_PROVIDER=naver 와 API 키를 설정하세요." } : {}),
+  });
 }
