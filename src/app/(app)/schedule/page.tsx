@@ -19,8 +19,11 @@ const TYPE_PREFIX: Record<RequestType, string> = {
   OTHER: "기타",
 };
 
-function isDone(status: string) {
-  return status === "DISTRIBUTED";
+// 배포 완료(지난) 판단: 상태가 배포 완료이거나, 예상 배포일이 오늘 이전이면 '완료'로 표시
+function makeIsDone(startOfToday: number) {
+  return (item: { status: string; expectedPublishDate: Date | null }) =>
+    item.status === "DISTRIBUTED" ||
+    (item.expectedPublishDate ? new Date(item.expectedPublishDate).getTime() < startOfToday : false);
 }
 
 export default async function SchedulePage({
@@ -69,6 +72,8 @@ export default async function SchedulePage({
     year === now.getFullYear() && month === now.getMonth() && d === now.getDate();
 
   const selectedItems = selectedDay ? byDay.get(selectedDay) ?? [] : [];
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const isDone = makeIsDone(startOfToday);
 
   return (
     <div>
@@ -114,7 +119,7 @@ export default async function SchedulePage({
                           key={it.id}
                           title={it.title}
                           className={`truncate rounded-md px-1.5 py-1 text-[11px] font-medium ${
-                            isDone(it.status) ? "bg-pgray-100 text-pgray-500" : "bg-brand-50 text-brand-700"
+                            isDone(it) ? "bg-pgray-100 text-pgray-500" : "bg-brand-50 text-brand-700"
                           }`}
                         >
                           <span className="font-bold">[{TYPE_PREFIX[it.type as RequestType]}]</span> {it.title}
@@ -145,7 +150,7 @@ export default async function SchedulePage({
                 <Link key={it.id} href={`/requests/${it.id}`} className="flex items-center justify-between gap-2 rounded-xl border border-pgray-100 bg-white px-4 py-3 hover:bg-pgray-50">
                   <span className="min-w-0">
                     <span className="flex items-center gap-1.5">
-                      <Badge color={isDone(it.status) ? "bg-pgray-100 text-pgray-500" : "bg-brand-100 text-brand-700"}>
+                      <Badge color={isDone(it) ? "bg-pgray-100 text-pgray-500" : "bg-brand-100 text-brand-700"}>
                         [{TYPE_PREFIX[it.type as RequestType]}]
                       </Badge>
                       <span className="truncate font-medium text-pgray-800">{it.title}</span>

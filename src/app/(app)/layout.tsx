@@ -22,7 +22,7 @@ export default async function AppLayout({
         unreadCount={unreadCount}
       />
       <div className="min-w-0 flex-1">
-        <main className="mx-auto max-w-6xl px-4 py-6 md:px-8 md:py-8">{children}</main>
+        <main className="w-full px-4 py-6 md:px-8 md:py-8">{children}</main>
       </div>
     </div>
   );

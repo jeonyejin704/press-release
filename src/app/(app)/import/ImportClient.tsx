@@ -39,7 +39,10 @@ export function ImportClient() {
     <div className="max-w-3xl">
       <h1 className="font-display text-2xl text-pgray-900">데이터 가져오기 (일괄 등록)</h1>
       <p className="mt-1 text-sm text-pgray-500">
-        지금까지 접수된 과거 홍보 신청 내역을 엑셀로 한 번에 등록합니다. 앞으로의 신청은 ‘새 홍보 신청’ 폼으로 하나씩 입력하세요.
+        지금까지 접수된 과거 <b>홍보 신청 내역</b>을 엑셀로 한 번에 등록합니다. 앞으로의 신청은 ‘새 홍보 신청’ 폼으로 하나씩 입력하세요.
+      </p>
+      <p className="mt-2 rounded-lg bg-accent-50 px-3 py-2 text-sm text-accent-800">
+        ※ <b>광고비 내역</b>은 여기가 아니라 왼쪽 <b>‘광고비 집행’</b> 메뉴의 엑셀 업로드로 올려주세요.
       </p>
 
       <Card className="mt-4 p-5">
@@ -88,6 +91,11 @@ export function ImportClient() {
             <Badge color="bg-brand-100 text-brand-700">{result.imported}건 등록</Badge>
             {result.skipped > 0 && <Badge color="bg-accent-100 text-accent-800">{result.skipped}건 건너뜀</Badge>}
           </div>
+          {result.imported === 0 && result.skipped === 0 && (
+            <p className="mt-2 rounded-lg bg-accent-50 px-3 py-2 text-sm text-accent-800">
+              인식된 행이 없습니다. <b>홍보 신청 양식</b>이 맞는지 확인해 주세요. (광고비 파일은 ‘광고비 집행’ 메뉴에서 업로드)
+            </p>
+          )}
           {result.errors.length > 0 && (
             <div className="mt-3">
               <div className="text-sm font-semibold text-pgray-700">확인이 필요한 행</div>

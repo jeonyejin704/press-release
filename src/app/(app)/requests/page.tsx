@@ -108,45 +108,47 @@ export default async function RequestsPage({
         <EmptyState title="신청 내역이 없습니다." hint="새 홍보 신청을 만들어 보세요." />
       ) : (
         <Card className="overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
-              <tr>
-                <th className="px-4 py-2.5">제목</th>
-                <th className="px-4 py-2.5">유형</th>
-                {manager && <th className="px-4 py-2.5">학과</th>}
-                {manager && <th className="px-4 py-2.5">신청자</th>}
-                <th className="px-4 py-2.5">상태</th>
-                <th className="px-4 py-2.5">예상 배포일</th>
-                <th className="px-4 py-2.5">수정일</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {requests.map((r) => (
-                <tr key={r.id} className="hover:bg-slate-50">
-                  <td className="px-4 py-3">
-                    <Link href={`/requests/${r.id}`} className="font-medium text-brand-700 hover:underline">
-                      {r.title}
-                    </Link>
-                    {r.isUrgent && (
-                      <Badge color="ml-2 bg-accent-100 text-accent-800">긴급</Badge>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-slate-600">
-                    {REQUEST_TYPE_LABELS[r.type as RequestType] ?? r.type}
-                  </td>
-                  {manager && <td className="px-4 py-3 text-slate-600">{r.department ?? "-"}</td>}
-                  {manager && <td className="px-4 py-3 text-slate-600">{r.applicant.name}</td>}
-                  <td className="px-4 py-3">
-                    <StatusBadge status={r.status} />
-                  </td>
-                  <td className="px-4 py-3 text-slate-500">
-                    {r.expectedPublishDate ? fmt(r.expectedPublishDate) : "-"}
-                  </td>
-                  <td className="px-4 py-3 text-slate-400">{fmt(r.updatedAt)}</td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
+                <tr>
+                  <th className="px-4 py-2.5">제목</th>
+                  <th className="whitespace-nowrap px-4 py-2.5">유형</th>
+                  {manager && <th className="whitespace-nowrap px-4 py-2.5">학과</th>}
+                  {manager && <th className="whitespace-nowrap px-4 py-2.5">신청자</th>}
+                  <th className="whitespace-nowrap px-4 py-2.5">상태</th>
+                  <th className="whitespace-nowrap px-4 py-2.5">예상 배포일</th>
+                  <th className="whitespace-nowrap px-4 py-2.5">수정일</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {requests.map((r) => (
+                  <tr key={r.id} className="hover:bg-slate-50">
+                    <td className="px-4 py-3">
+                      <Link href={`/requests/${r.id}`} className="font-medium text-brand-700 hover:underline">
+                        {r.title}
+                      </Link>
+                      {r.isUrgent && (
+                        <Badge color="ml-2 bg-accent-100 text-accent-800">긴급</Badge>
+                      )}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 text-slate-600">
+                      {REQUEST_TYPE_LABELS[r.type as RequestType] ?? r.type}
+                    </td>
+                    {manager && <td className="whitespace-nowrap px-4 py-3 text-slate-600">{r.department ?? "-"}</td>}
+                    {manager && <td className="whitespace-nowrap px-4 py-3 text-slate-600">{r.applicant.name}</td>}
+                    <td className="whitespace-nowrap px-4 py-3">
+                      <StatusBadge status={r.status} />
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 text-slate-500">
+                      {r.expectedPublishDate ? fmt(r.expectedPublishDate) : "-"}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 text-slate-400">{fmt(r.updatedAt)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </Card>
       )}
     </div>
