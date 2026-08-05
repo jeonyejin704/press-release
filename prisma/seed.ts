@@ -329,11 +329,11 @@ async function main() {
   }
 
   // ── News ───────────────────────────────────────────────────────────────────
-  for (const kw of ["POSTECH", "포항공과대학교", "포스텍"]) {
+  for (const kw of ["포스텍", "POSTECH", "포항공과대학교", "포항공대"]) {
     await prisma.newsKeyword.create({ data: { keyword: kw } });
   }
   const media = ["연합뉴스", "동아사이언스", "한국경제", "매일경제", "조선일보", "경북일보", "전자신문"];
-  const keywords = ["POSTECH", "포항공과대학교", "포스텍"];
+  const keywords = ["포스텍", "POSTECH", "포항공과대학교", "포항공대"];
   for (let i = 0; i < 16; i++) {
     const kw = keywords[i % keywords.length];
     await prisma.newsItem.create({

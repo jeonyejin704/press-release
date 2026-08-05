@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser, isManager } from "@/lib/session";
-import { getNewsProvider } from "@/lib/news";
+import { getNewsProvider, DEFAULT_KEYWORDS } from "@/lib/news";
 
 // Pulls fresh articles from the configured news provider (mock by default)
 // for all active keywords, de-duplicating by URL.
@@ -10,6 +10,13 @@ export async function POST() {
   if (!user || !isManager(user)) {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }
+
+  // 기본 키워드(포스텍/POSTECH/포항공과대학교/포항공대)가 없으면 자동 추가
+  await Promise.all(
+    DEFAULT_KEYWORDS.map((keyword) =>
+      prisma.newsKeyword.upsert({ where: { keyword }, create: { keyword }, update: {} }),
+    ),
+  );
 
   const keywords = await prisma.newsKeyword.findMany({ where: { active: true } });
   const kwList = keywords.map((k) => k.keyword);
