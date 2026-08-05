@@ -98,7 +98,7 @@ export default async function DashboardPage({
         {kpis.map((k) => (
           <Link key={k.key} href={kpiHref(k.key)}>
             <Card
-              className={`p-4 text-center transition hover:-translate-y-0.5 hover:shadow-md ${
+              className={`border-t-4 border-t-brand-600 p-4 text-center transition hover:-translate-y-0.5 hover:shadow-md ${
                 bucket === k.key ? "ring-2 ring-brand-500" : ""
               }`}
             >
@@ -134,14 +134,14 @@ export default async function DashboardPage({
 
       {/* ── 2행: 그래프 ──────────────────────────── */}
       <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="p-5">
+        <Card className="border-t-4 border-t-brand-600 p-5">
           <SectionTitle>
             월별 신청 추이
             <span className="ml-1 text-xs font-normal text-pgray-400">{ty} · {ty - 1} 동월 비교</span>
           </SectionTitle>
           <MonthlyTrend data={d.monthly} />
         </Card>
-        <Card className="p-5">
+        <Card className="border-t-4 border-t-brand-600 p-5">
           <div className="mb-2 flex items-center justify-between">
             <div className="text-base font-bold text-pgray-900">홍보 유형별 비율</div>
             <Link href="/dashboard/journals" className="text-xs font-medium text-brand-600 hover:underline">
@@ -155,7 +155,7 @@ export default async function DashboardPage({
           )}
           <p className="mt-1 text-center text-[11px] text-pgray-400">각 조각을 클릭하면 저널 게재 현황을 볼 수 있어요.</p>
         </Card>
-        <Card className="p-5">
+        <Card className="border-t-4 border-t-brand-600 p-5">
           <SectionTitle>
             학과별 신청 건수
             <span className="ml-1 text-xs font-normal text-pgray-400">{ty} · {ty - 1} 비교 (최다: {d.metrics.topDept})</span>
@@ -165,7 +165,7 @@ export default async function DashboardPage({
       </div>
 
       {/* ── 광고비 집행 현황 ─────────────────────────── */}
-      <Card className="p-5">
+      <Card className="border-t-4 border-t-brand-600 p-5">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <SectionTitle>
             광고비 집행 현황
@@ -188,33 +188,8 @@ export default async function DashboardPage({
         <AdSpendTrend data={d.adSpend.monthly} />
       </Card>
 
-      {/* ── 3행: 오늘 배포 보도자료 (전체 너비 한 줄) ─────────── */}
+      {/* ── 관련 기사 · 뉴스 모니터링 (전체 너비) ─────────── */}
       <Card className="border-t-4 border-t-brand-600 p-5">
-        <div className="mb-3 flex items-center gap-2">
-          <span className="text-lg font-extrabold text-pgray-900">📣 오늘 배포 보도자료</span>
-          <Badge color="bg-brand-100 text-brand-700">{d.todayRelease.length}건</Badge>
-        </div>
-        {d.todayRelease.length === 0 ? (
-          <p className="py-6 text-center text-sm text-pgray-400">오늘 배포 예정인 보도자료가 없습니다.</p>
-        ) : (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {d.todayRelease.map((r) => (
-              <Link
-                key={r.id}
-                href={`/requests/${r.id}`}
-                className="block rounded-xl border border-pgray-100 bg-pgray-50 px-4 py-3 transition hover:border-brand-200 hover:bg-brand-50"
-              >
-                <Badge color="bg-white text-pgray-500">{REQUEST_TYPE_LABELS[r.type]}</Badge>
-                <div className="mt-1.5 text-base font-bold text-pgray-900">{r.title}</div>
-                {r.subtitle && <p className="mt-0.5 text-sm text-pgray-500">{r.subtitle}</p>}
-              </Link>
-            ))}
-          </div>
-        )}
-      </Card>
-
-      {/* ── 4행: 관련 기사 · 뉴스 모니터링 (전체 너비) ─────────── */}
-      <Card className="p-5">
         <div className="mb-1 flex items-center justify-between">
           <SectionTitle>관련 기사 · 뉴스 모니터링</SectionTitle>
           <Link href="/news" className="text-xs font-medium text-brand-600 hover:underline">
@@ -298,7 +273,7 @@ function BucketTable({ items }: { items: DashboardRequest[] }) {
 
 function MiniList({ title, items }: { title: string; items: DashboardRequest[] }) {
   return (
-    <Card className="p-3">
+    <Card className="border-t-4 border-t-brand-600 p-3">
       <div className="mb-1.5 flex items-center justify-between">
         <span className="text-sm font-semibold text-pgray-700">{title}</span>
         <Badge color={items.length ? "bg-accent-100 text-accent-800" : "bg-pgray-100 text-pgray-500"}>

@@ -2,12 +2,26 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser, isManager } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
-import { Card, Badge } from "@/components/ui";
-import { REQUEST_TYPE_LABELS, type RequestType } from "@/lib/enums";
+import { Card, Badge, StatusBadge } from "@/components/ui";
+import { type RequestType } from "@/lib/enums";
 
 export const dynamic = "force-dynamic";
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
+
+// 유형 앞머리 표시
+const TYPE_PREFIX: Record<RequestType, string> = {
+  RESEARCH: "연구",
+  AWARD: "수상",
+  EVENT: "행사/이벤트",
+  APPOINTMENT: "위원선임",
+  PERSONAL_NEWS: "동정",
+  OTHER: "기타",
+};
+
+function isDone(status: string) {
+  return status === "DISTRIBUTED";
+}
 
 export default async function SchedulePage({
   searchParams,
@@ -21,18 +35,18 @@ export default async function SchedulePage({
   const sp = await searchParams;
   const now = new Date();
   const year = sp.y ? parseInt(sp.y) : now.getFullYear();
-  const month = sp.m ? parseInt(sp.m) - 1 : now.getMonth(); // 0-based
+  const month = sp.m ? parseInt(sp.m) - 1 : now.getMonth();
+  const selectedDay = sp.d ? parseInt(sp.d) : null;
 
   const monthStart = new Date(year, month, 1);
   const monthEnd = new Date(year, month + 1, 1);
 
   const items = await prisma.pressRequest.findMany({
     where: { expectedPublishDate: { gte: monthStart, lt: monthEnd } },
-    select: { id: true, title: true, type: true, expectedPublishDate: true, status: true },
+    select: { id: true, title: true, type: true, status: true, expectedPublishDate: true, department: true },
     orderBy: { expectedPublishDate: "asc" },
   });
 
-  // 날짜별 그룹
   const byDay = new Map<number, typeof items>();
   for (const it of items) {
     const day = new Date(it.expectedPublishDate!).getDate();
@@ -40,8 +54,7 @@ export default async function SchedulePage({
     byDay.get(day)!.push(it);
   }
 
-  // 달력 셀 구성
-  const firstWeekday = monthStart.getDay(); // 0=일
+  const firstWeekday = monthStart.getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const cells: (number | null)[] = [];
   for (let i = 0; i < firstWeekday; i++) cells.push(null);
@@ -50,90 +63,102 @@ export default async function SchedulePage({
 
   const prev = new Date(year, month - 1, 1);
   const next = new Date(year, month + 1, 1);
-  const href = (dt: Date) => `/schedule?y=${dt.getFullYear()}&m=${dt.getMonth() + 1}`;
+  const navHref = (dt: Date) => `/schedule?y=${dt.getFullYear()}&m=${dt.getMonth() + 1}`;
+  const dayHref = (d: number) => `/schedule?y=${year}&m=${month + 1}&d=${d}`;
   const isToday = (d: number) =>
     year === now.getFullYear() && month === now.getMonth() && d === now.getDate();
 
+  const selectedItems = selectedDay ? byDay.get(selectedDay) ?? [] : [];
+
   return (
     <div>
-      <div className="mb-5 flex items-center justify-between">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <div>
           <h1 className="font-display text-2xl text-pgray-900">배포일정</h1>
-          <p className="text-sm text-pgray-500">예상 배포일 기준 보도자료 달력입니다.</p>
+          <p className="text-sm text-pgray-500">예상 배포일 기준 보도자료 달력입니다. 날짜를 클릭하면 아래에 상세가 표시됩니다.</p>
         </div>
         <div className="flex items-center gap-2">
-          <Link href={href(prev)} className="rounded-lg border border-pgray-200 px-3 py-1.5 text-sm hover:bg-pgray-50">‹ 이전</Link>
-          <span className="min-w-[7rem] text-center font-display text-lg text-brand-700">
-            {year}년 {month + 1}월
-          </span>
-          <Link href={href(next)} className="rounded-lg border border-pgray-200 px-3 py-1.5 text-sm hover:bg-pgray-50">다음 ›</Link>
+          <Link href={navHref(prev)} className="rounded-lg border border-pgray-200 px-3 py-1.5 text-sm hover:bg-pgray-50">‹ 이전</Link>
+          <span className="min-w-[7rem] text-center font-display text-lg text-brand-700">{year}년 {month + 1}월</span>
+          <Link href={navHref(next)} className="rounded-lg border border-pgray-200 px-3 py-1.5 text-sm hover:bg-pgray-50">다음 ›</Link>
           <Link href="/schedule" className="ml-1 rounded-lg px-3 py-1.5 text-sm text-pgray-500 hover:bg-pgray-100">오늘</Link>
         </div>
       </div>
 
-      <Card className="overflow-hidden p-0">
+      {/* 범례 */}
+      <div className="mb-3 flex items-center gap-4 text-xs text-pgray-500">
+        <span className="flex items-center gap-1.5"><span className="inline-block h-3 w-3 rounded bg-brand-500" />배포 예정</span>
+        <span className="flex items-center gap-1.5"><span className="inline-block h-3 w-3 rounded bg-pgray-300" />배포 완료</span>
+      </div>
+
+      <Card className="overflow-hidden border-t-4 border-t-brand-600 p-0">
         <div className="grid grid-cols-7 border-b border-pgray-100 bg-pgray-50 text-center">
           {WEEKDAYS.map((w, i) => (
-            <div key={w} className={`py-2 text-xs font-semibold ${i === 0 ? "text-brand-600" : i === 6 ? "text-accent-700" : "text-pgray-500"}`}>
-              {w}
-            </div>
+            <div key={w} className={`py-2 text-xs font-semibold ${i === 0 ? "text-brand-600" : i === 6 ? "text-accent-700" : "text-pgray-500"}`}>{w}</div>
           ))}
         </div>
         <div className="grid grid-cols-7">
-          {cells.map((d, i) => (
-            <div
-              key={i}
-              className={`min-h-[104px] border-b border-r border-pgray-100 p-1.5 ${
-                d === null ? "bg-pgray-50/40" : ""
-              }`}
-            >
-              {d !== null && (
-                <>
-                  <div className={`mb-1 text-right text-xs ${isToday(d) ? "" : "text-pgray-400"}`}>
-                    <span className={isToday(d) ? "rounded-full bg-brand-600 px-1.5 py-0.5 font-bold text-white" : ""}>{d}</span>
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    {(byDay.get(d) ?? []).slice(0, 4).map((it) => (
-                      <Link
-                        key={it.id}
-                        href={`/requests/${it.id}`}
-                        title={it.title}
-                        className="block truncate rounded-md bg-brand-50 px-1.5 py-1 text-[11px] font-medium text-brand-700 hover:bg-brand-100"
-                      >
-                        {it.title}
-                      </Link>
-                    ))}
-                    {(byDay.get(d)?.length ?? 0) > 4 && (
-                      <span className="px-1 text-[10px] text-pgray-400">+{byDay.get(d)!.length - 4}건 더</span>
-                    )}
-                  </div>
-                </>
-              )}
-            </div>
-          ))}
+          {cells.map((d, i) => {
+            const dayItems = d !== null ? byDay.get(d) ?? [] : [];
+            const selected = d !== null && d === selectedDay;
+            return (
+              <div key={i} className={`min-h-[108px] border-b border-r border-pgray-100 ${d === null ? "bg-pgray-50/40" : ""}`}>
+                {d !== null && (
+                  <Link href={dayHref(d)} className={`block h-full p-1.5 transition hover:bg-brand-50/40 ${selected ? "bg-brand-50" : ""}`}>
+                    <div className="mb-1 text-right text-xs">
+                      <span className={isToday(d) ? "rounded-full bg-brand-600 px-1.5 py-0.5 font-bold text-white" : "text-pgray-400"}>{d}</span>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      {dayItems.slice(0, 4).map((it) => (
+                        <div
+                          key={it.id}
+                          title={it.title}
+                          className={`truncate rounded-md px-1.5 py-1 text-[11px] font-medium ${
+                            isDone(it.status) ? "bg-pgray-100 text-pgray-500" : "bg-brand-50 text-brand-700"
+                          }`}
+                        >
+                          <span className="font-bold">[{TYPE_PREFIX[it.type as RequestType]}]</span> {it.title}
+                        </div>
+                      ))}
+                      {dayItems.length > 4 && <span className="px-1 text-[10px] text-pgray-400">+{dayItems.length - 4}건 더</span>}
+                    </div>
+                  </Link>
+                )}
+              </div>
+            );
+          })}
         </div>
       </Card>
 
-      <div className="mt-4">
-        <div className="mb-2 text-sm font-bold text-pgray-800">이번 달 배포 예정 ({items.length}건)</div>
-        {items.length === 0 ? (
-          <p className="text-sm text-pgray-400">예정된 배포가 없습니다.</p>
-        ) : (
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {items.map((it) => (
-              <Link key={it.id} href={`/requests/${it.id}`} className="flex items-center gap-2 rounded-xl border border-pgray-100 bg-white px-3 py-2 hover:bg-pgray-50">
-                <span className="rounded-md bg-brand-600 px-2 py-1 text-xs font-bold text-white">
-                  {new Date(it.expectedPublishDate!).getDate()}일
-                </span>
-                <span className="min-w-0">
-                  <span className="block truncate text-sm font-medium text-pgray-800">{it.title}</span>
-                  <Badge>{REQUEST_TYPE_LABELS[it.type as RequestType]}</Badge>
-                </span>
-              </Link>
-            ))}
+      {/* 선택한 날짜 상세 */}
+      {selectedDay && (
+        <Card className="mt-4 border-t-4 border-t-brand-600 p-5">
+          <div className="mb-3 text-base font-bold text-pgray-900">
+            {year}년 {month + 1}월 {selectedDay}일 배포 예정
+            <span className="ml-2 text-sm font-normal text-pgray-400">{selectedItems.length}건</span>
           </div>
-        )}
-      </div>
+          {selectedItems.length === 0 ? (
+            <p className="py-4 text-center text-sm text-pgray-400">이 날짜에 배포 예정인 보도자료가 없습니다.</p>
+          ) : (
+            <div className="grid gap-2 sm:grid-cols-2">
+              {selectedItems.map((it) => (
+                <Link key={it.id} href={`/requests/${it.id}`} className="flex items-center justify-between gap-2 rounded-xl border border-pgray-100 bg-white px-4 py-3 hover:bg-pgray-50">
+                  <span className="min-w-0">
+                    <span className="flex items-center gap-1.5">
+                      <Badge color={isDone(it.status) ? "bg-pgray-100 text-pgray-500" : "bg-brand-100 text-brand-700"}>
+                        [{TYPE_PREFIX[it.type as RequestType]}]
+                      </Badge>
+                      <span className="truncate font-medium text-pgray-800">{it.title}</span>
+                    </span>
+                    <span className="mt-1 block text-xs text-pgray-400">{it.department ?? ""}</span>
+                  </span>
+                  <StatusBadge status={it.status} />
+                </Link>
+              ))}
+            </div>
+          )}
+        </Card>
+      )}
     </div>
   );
 }

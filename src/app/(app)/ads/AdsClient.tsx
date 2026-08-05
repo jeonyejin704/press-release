@@ -19,12 +19,14 @@ export function AdsClient({ ads, summary }: { ads: any[]; summary: any }) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [form, setForm] = useState({ title: "", medium: "네이버", amount: "", executedAt: "", department: "", note: "" });
+  const [form, setForm] = useState({ title: "", medium: "네이버", amount: "", month: "", note: "" });
+  const [importResult, setImportResult] = useState<{ imported: number; skipped: number; errors: string[] } | null>(null);
+  const [importing, setImporting] = useState(false);
 
   async function submit() {
     setError("");
-    if (!form.title || !form.amount || !form.executedAt) {
-      setError("집행 건명·집행액·집행일은 필수입니다.");
+    if (!form.title || !form.amount || !form.month) {
+      setError("집행 건명·집행액·집행월은 필수입니다.");
       return;
     }
     setBusy(true);
@@ -39,11 +41,30 @@ export function AdsClient({ ads, summary }: { ads: any[]; summary: any }) {
         setError(d.error ?? "등록 실패");
         return;
       }
-      setForm({ title: "", medium: "네이버", amount: "", executedAt: "", department: "", note: "" });
+      setForm({ title: "", medium: "네이버", amount: "", month: "", note: "" });
       setOpen(false);
       router.refresh();
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function importFile(file: File) {
+    setImportResult(null);
+    setImporting(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/ads/import", { method: "POST", body: fd });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setImportResult({ imported: 0, skipped: 0, errors: [data.error ?? "가져오기 실패"] });
+        return;
+      }
+      setImportResult(data);
+      router.refresh();
+    } finally {
+      setImporting(false);
     }
   }
 
@@ -73,6 +94,38 @@ export function AdsClient({ ads, summary }: { ads: any[]; summary: any }) {
           <div className="mt-1 font-display text-2xl text-pgray-700">{summary.count}건</div></Card>
       </div>
 
+      {/* 엑셀 일괄 업로드 */}
+      <Card className="mb-4 border-t-4 border-t-brand-600 p-5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <div className="font-bold text-pgray-900">📥 엑셀로 한 번에 올리기</div>
+            <div className="text-sm text-pgray-500">
+              지금까지 엑셀로 관리하던 내역을 업로드하세요. 열 구성: <b>집행 건명 · 매체 · 집행액(원) · 집행월</b>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <a href="/templates/광고비_일괄등록_양식.xlsx" download
+              className="inline-flex items-center rounded-lg border border-accent-300 bg-accent-50 px-3 py-2 text-sm font-bold text-accent-800 hover:bg-accent-100">
+              양식 다운로드
+            </a>
+            <label className="inline-flex cursor-pointer items-center rounded-lg bg-brand-600 px-3.5 py-2 text-sm font-semibold text-white hover:bg-brand-700">
+              {importing ? "가져오는 중…" : "엑셀 업로드"}
+              <input type="file" accept=".xlsx,.xls,.csv" className="hidden" disabled={importing}
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) importFile(f); e.target.value = ""; }} />
+            </label>
+          </div>
+        </div>
+        {importResult && (
+          <div className="mt-3 rounded-lg bg-pgray-50 p-3 text-sm">
+            <span className="font-semibold text-pgray-800">{importResult.imported}건 등록</span>
+            {importResult.skipped > 0 && <span className="ml-2 text-accent-700">{importResult.skipped}건 건너뜀</span>}
+            {importResult.errors.length > 0 && (
+              <ul className="mt-1 text-xs text-pgray-500">{importResult.errors.map((e, i) => <li key={i}>• {e}</li>)}</ul>
+            )}
+          </div>
+        )}
+      </Card>
+
       {/* 추가 폼 */}
       {open && (
         <Card className="mb-4 p-5">
@@ -85,8 +138,8 @@ export function AdsClient({ ads, summary }: { ads: any[]; summary: any }) {
               </select></Field>
             <Field label="집행액 (원)" required>
               <input type="number" className={inputClass} value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder="예: 5000000" /></Field>
-            <Field label="집행일" required>
-              <input type="date" className={inputClass} value={form.executedAt} onChange={(e) => setForm({ ...form, executedAt: e.target.value })} /></Field>
+            <Field label="집행월" required>
+              <input type="month" className={inputClass} value={form.month} onChange={(e) => setForm({ ...form, month: e.target.value })} /></Field>
             <Field label="담당 부서/메모">
               <input className={inputClass} value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} /></Field>
           </div>
@@ -123,12 +176,12 @@ export function AdsClient({ ads, summary }: { ads: any[]; summary: any }) {
             <div className="max-h-[30rem] overflow-auto">
               <table className="w-full text-sm">
                 <thead className="sticky top-0 bg-pgray-50 text-left text-xs uppercase text-pgray-500">
-                  <tr><th className="px-4 py-2">집행일</th><th className="px-4 py-2">건명</th><th className="px-4 py-2">매체</th><th className="px-4 py-2 text-right">집행액</th></tr>
+                  <tr><th className="px-4 py-2">집행월</th><th className="px-4 py-2">건명</th><th className="px-4 py-2">매체</th><th className="px-4 py-2 text-right">집행액</th></tr>
                 </thead>
                 <tbody className="divide-y divide-pgray-100">
                   {ads.map((a) => (
                     <tr key={a.id} className="hover:bg-pgray-50">
-                      <td className="whitespace-nowrap px-4 py-2 text-pgray-500">{new Date(a.executedAt).toLocaleDateString("ko-KR")}</td>
+                      <td className="whitespace-nowrap px-4 py-2 text-pgray-500">{new Date(a.executedAt).getFullYear()}.{String(new Date(a.executedAt).getMonth() + 1).padStart(2, "0")}</td>
                       <td className="px-4 py-2 text-pgray-800">{a.title}</td>
                       <td className="px-4 py-2"><Badge>{a.medium}</Badge></td>
                       <td className="whitespace-nowrap px-4 py-2 text-right font-semibold text-pgray-800">{manwon(a.amount)}</td>

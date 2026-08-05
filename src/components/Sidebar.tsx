@@ -18,8 +18,8 @@ export function Sidebar({ user, unreadCount }: { user: NavUser; unreadCount: num
         { href: "/requests", label: "신청 관리", icon: "📋" },
         { href: "/schedule", label: "배포일정", icon: "📅" },
         { href: "/ads", label: "광고비 집행", icon: "💰" },
-        { href: "/import", label: "데이터 가져오기", icon: "📥" },
         { href: "/news", label: "뉴스 모니터링", icon: "📰" },
+        { href: "/import", label: "데이터 가져오기", icon: "📥" },
         { href: "/notifications", label: "알림", icon: "🔔" },
       ]
     : [

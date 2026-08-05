@@ -18,10 +18,15 @@ export async function POST(req: Request) {
   const title = String(body.title ?? "").trim();
   const medium = String(body.medium ?? "").trim();
   const amount = Math.round(Number(body.amount));
-  const executedAt = body.executedAt ? new Date(body.executedAt) : null;
+
+  // 집행월(YYYY-MM) → 해당 월 1일
+  let executedAt: Date | null = null;
+  const monthStr = String(body.month ?? body.executedAt ?? "");
+  const m = monthStr.match(/(\d{4})-(\d{1,2})/);
+  if (m) executedAt = new Date(parseInt(m[1]), parseInt(m[2]) - 1, 1);
 
   if (!title || !medium || !amount || amount <= 0 || !executedAt || isNaN(executedAt.getTime())) {
-    return NextResponse.json({ error: "집행 건명·매체·집행액·집행일을 확인해 주세요." }, { status: 400 });
+    return NextResponse.json({ error: "집행 건명·매체·집행액·집행월을 확인해 주세요." }, { status: 400 });
   }
 
   const ad = await prisma.adSpend.create({
