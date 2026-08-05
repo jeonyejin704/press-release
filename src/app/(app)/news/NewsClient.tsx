@@ -32,6 +32,13 @@ export function NewsClient({
 
   const filtered = filter ? news.filter((n) => n.keyword === filter) : news;
   const importantCount = news.filter((n) => n.isImportant).length;
+  const dummyCount = news.filter((n) => typeof n.url === "string" && n.url.includes("news.example.com")).length;
+
+  async function purgeDummy() {
+    if (!confirm(`샘플(더미) 기사 ${dummyCount}건을 모두 삭제할까요?`)) return;
+    await fetch("/api/news?scope=dummy", { method: "DELETE" });
+    router.refresh();
+  }
 
   async function refresh() {
     setBusy(true);
@@ -105,6 +112,15 @@ export function NewsClient({
         <div className="mb-3 flex items-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50 px-3 py-2 text-xs text-brand-700">
           <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-brand-500" />
           네이버 뉴스 실시간 연동 중 — 페이지에 들어올 때마다 최신 기사를 수집합니다.
+        </div>
+      )}
+
+      {dummyCount > 0 && (
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-accent-300 bg-accent-50 px-3 py-2 text-xs text-accent-800">
+          <span>🧹 남아있는 <b>샘플(더미) 기사 {dummyCount}건</b>이 있습니다. 실제 기사만 남기려면 삭제하세요.</span>
+          <button onClick={purgeDummy} className="rounded-md bg-accent-600 px-2.5 py-1 font-semibold text-white hover:bg-accent-700">
+            샘플 기사 모두 삭제
+          </button>
         </div>
       )}
 

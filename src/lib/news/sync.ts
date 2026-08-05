@@ -15,15 +15,17 @@ export type NewsSyncResult = {
 export async function syncNaverNews(opts: { throttleMs?: number } = {}): Promise<NewsSyncResult> {
   const provider = await resolveNewsProvider();
   const now = Date.now();
+
+  // 실제 네이버 연동이면 예전에 쌓인 mock(샘플) 기사를 정리한다.
+  // (스로틀과 무관하게 항상 실행 — 비용이 작고, 더미가 남아있으면 안 되므로)
+  if (provider.name === "naver") {
+    await prisma.newsItem.deleteMany({ where: { url: { contains: MOCK_URL_HOST } } }).catch(() => null);
+  }
+
   if (opts.throttleMs && now - lastSyncAt < opts.throttleMs) {
     return { added: 0, provider: provider.name, skipped: true };
   }
   lastSyncAt = now;
-
-  // 실제 네이버 연동이면 예전에 쌓인 mock(샘플) 기사를 정리한다.
-  if (provider.name === "naver") {
-    await prisma.newsItem.deleteMany({ where: { url: { contains: MOCK_URL_HOST } } }).catch(() => null);
-  }
 
   // 키워드가 하나도 없을 때만 기본 키워드(포스텍/POSTECH/포항공과대학교/포항공대) 최초 1회 시딩.
   // (사용자가 삭제한 키워드가 매번 되살아나지 않도록 upsert 하지 않는다)
