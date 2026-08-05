@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, Button, Badge, EmptyState, Field, inputClass } from "@/components/ui";
+import { mentionedPerson } from "@/lib/mention";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -166,6 +167,9 @@ export function NewsClient({
                 </div>
                 <a href={n.url} target="_blank" className="mt-1 block font-medium text-slate-800 hover:text-brand-700 hover:underline">
                   {n.title}
+                  {mentionedPerson(n.title, n.summary) && (
+                    <span className="text-brand-600"> · {mentionedPerson(n.title, n.summary)}</span>
+                  )}
                 </a>
                 {n.summary && <p className="mt-1 line-clamp-2 text-sm text-slate-500">{n.summary}</p>}
               </div>

@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { mentionedPerson } from "@/lib/mention";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 const PAGE_SIZE = 5; // 한 페이지 5개
-const MAX_ITEMS = 20; // 최근 20개까지(= 최대 4페이지)
+const MAX_ITEMS = 25; // 최근 25개까지(= 최대 5페이지)
 
 export function DashboardNews({ news, keywords }: { news: any[]; keywords: string[] }) {
   const [filter, setFilter] = useState("");
@@ -49,6 +50,9 @@ export function DashboardNews({ news, keywords }: { news: any[]; keywords: strin
                 <span className="min-w-0">
                   <span className="block truncate text-sm font-medium text-pgray-800 hover:text-brand-700 hover:underline">
                     {n.title}
+                    {mentionedPerson(n.title, n.summary) && (
+                      <span className="text-brand-600"> · {mentionedPerson(n.title, n.summary)}</span>
+                    )}
                   </span>
                   <span className="text-xs text-pgray-400">
                     {n.mediaName}

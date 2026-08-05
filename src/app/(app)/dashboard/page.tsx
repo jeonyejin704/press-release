@@ -30,7 +30,7 @@ export default async function DashboardPage({
   // 대시보드 진입 시에도 최신 기사 수집(뉴스 페이지보다 길게 5분 스로틀 — 대시보드는 자주 열림)
   await syncNaverNews({ throttleMs: 5 * 60_000 }).catch(() => null);
   const [news, keywords] = await Promise.all([
-    prisma.newsItem.findMany({ orderBy: { publishedAt: "desc" }, take: 20 }),
+    prisma.newsItem.findMany({ orderBy: { publishedAt: "desc" }, take: 25 }),
     prisma.newsKeyword.findMany({ where: { active: true }, orderBy: { createdAt: "asc" } }),
   ]);
 
@@ -49,11 +49,9 @@ export default async function DashboardPage({
     : [];
 
   const kpis = [
-    { key: "total", label: "전체 신청", value: d.metrics.total, tone: "brandDark" },
-    { key: "completed", label: "최종 완료", value: d.metrics.completed, tone: "brand" },
-    { key: "distributed", label: "배포 완료", value: d.metrics.distributed, tone: "brandDark" },
-    { key: "onHold", label: "보류", value: d.metrics.onHold, tone: "gray" },
-    { key: "rejected", label: "반려", value: d.metrics.rejected, tone: "grayDark" },
+    { key: "total", label: "홍보신청", value: d.kpi.thisYear.total, last: d.kpi.lastYear.total, tone: "brandDark" },
+    { key: "done", label: "배포완료", value: d.kpi.thisYear.done, last: d.kpi.lastYear.done, tone: "brand" },
+    { key: "hold", label: "진행보류", value: d.kpi.thisYear.hold, last: d.kpi.lastYear.hold, tone: "gray" },
   ];
 
   const rangeLabel = sp.from || sp.to ? `${sp.from ?? "처음"} ~ ${sp.to ?? "오늘"}` : "전체 기간";
@@ -100,8 +98,8 @@ export default async function DashboardPage({
         </div>
       </div>
 
-      {/* ── 1행: KPI (클릭 시 목록) ─────────────── */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
+      {/* ── 1행: KPI 3종 (올해 / 작년 비교, 클릭 시 목록) ─────────────── */}
+      <div className="grid grid-cols-3 gap-3">
         {kpis.map((k) => (
           <Link key={k.key} href={kpiHref(k.key)}>
             <Card
@@ -111,7 +109,10 @@ export default async function DashboardPage({
             >
               <div className="text-sm text-pgray-500">{k.label}</div>
               <div className={`mt-1 font-display text-[2.6rem] leading-none ${TONE[k.tone]}`}>{k.value}</div>
-              <div className="mt-2 text-[11px] text-pgray-400">클릭하여 목록 보기</div>
+              <div className="mt-1 text-xs text-pgray-400">
+                {d.kpi.year} · 작년({d.kpi.year - 1}) <span className="font-semibold text-pgray-500">{k.last}</span>
+              </div>
+              <div className="mt-1.5 text-[11px] text-pgray-400">클릭하여 목록 보기</div>
             </Card>
           </Link>
         ))}
@@ -139,15 +140,17 @@ export default async function DashboardPage({
         </Card>
       )}
 
-      {/* ── 2행: 그래프 ──────────────────────────── */}
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="border-t-4 border-t-brand-600 p-5">
-          <SectionTitle>
-            월별 신청 추이
-            <span className="ml-1 text-xs font-normal text-pgray-400">{ty} · {ty - 1} 동월 비교</span>
-          </SectionTitle>
-          <MonthlyTrend data={d.monthly} />
-        </Card>
+      {/* ── 월별 신청 추이 (가로가 길어 전체 너비) ─────────────── */}
+      <Card className="border-t-4 border-t-brand-600 p-5">
+        <SectionTitle>
+          월별 신청 추이
+          <span className="ml-1 text-xs font-normal text-pgray-400">{d.kpi.year}학년도(3월~) · 작년 동월 비교</span>
+        </SectionTitle>
+        <MonthlyTrend data={d.monthly} />
+      </Card>
+
+      {/* ── 홍보 유형별 비율 + 학과별 TOP5 (좁은 2단) ─────────────── */}
+      <div className="grid gap-4 lg:grid-cols-2">
         <Card className="border-t-4 border-t-brand-600 p-5">
           <div className="mb-1 flex items-center justify-between">
             <div className="text-base font-bold text-pgray-900">홍보 유형별 비율</div>

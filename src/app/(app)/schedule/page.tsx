@@ -19,6 +19,16 @@ const TYPE_PREFIX: Record<RequestType, string> = {
   OTHER: "기타",
 };
 
+// 유형별 색상 (POSTECH 팔레트 기반). [예정] = 진한 배경, 지난 건 옅게 처리.
+const TYPE_COLOR: Record<RequestType, { chip: string; done: string; dot: string }> = {
+  RESEARCH:      { chip: "bg-brand-100 text-brand-700",   done: "bg-brand-50 text-brand-400",   dot: "bg-brand-500" },
+  AWARD:         { chip: "bg-accent-100 text-accent-800",  done: "bg-accent-50 text-accent-400",  dot: "bg-accent-500" },
+  EVENT:         { chip: "bg-[#e7d5df] text-[#7a2148]",    done: "bg-[#f3ecf0] text-[#b98aa1]",   dot: "bg-[#cd527d]" },
+  APPOINTMENT:   { chip: "bg-[#fdeecb] text-[#8a6a12]",    done: "bg-[#fdf6e6] text-[#c7ad6e]",   dot: "bg-[#fcc74c]" },
+  PERSONAL_NEWS: { chip: "bg-pgray-200 text-pgray-700",    done: "bg-pgray-100 text-pgray-400",   dot: "bg-pgray-500" },
+  OTHER:         { chip: "bg-[#e6e3e2] text-[#5b5754]",    done: "bg-pgray-100 text-pgray-400",   dot: "bg-[#b7b4b0]" },
+};
+
 // 배포 완료(지난) 판단: 예상 배포일이 오늘 이전이면 '완료(회색)', 오늘 이후면 '예정(자주)'.
 // 달력이므로 날짜만 기준으로 판단한다(아직 도래하지 않은 날짜는 항상 '예정').
 function makeIsDone(startOfToday: number) {
@@ -41,7 +51,9 @@ function personOf(it: any): string {
             : it.type === "EVENT"
               ? it.event?.who || it.event?.host
               : null;
-  return (byType || it.applicant?.name || "").trim();
+  // 이름 정보가 없거나 '미상'이면 '전예진'으로 통일해 항상 사람 이름이 보이도록 함
+  const name = (byType || it.applicant?.name || "").trim();
+  return !name || name === "미상" ? "전예진" : name;
 }
 
 export default async function SchedulePage({
@@ -116,10 +128,15 @@ export default async function SchedulePage({
         </div>
       </div>
 
-      {/* 범례 */}
-      <div className="mb-3 flex items-center gap-4 text-xs text-pgray-500">
-        <span className="flex items-center gap-1.5"><span className="inline-block h-3 w-3 rounded bg-brand-500" />배포 예정</span>
-        <span className="flex items-center gap-1.5"><span className="inline-block h-3 w-3 rounded bg-pgray-300" />배포 완료</span>
+      {/* 범례 (유형별 색상) */}
+      <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-pgray-500">
+        {(Object.keys(TYPE_PREFIX) as RequestType[]).map((t) => (
+          <span key={t} className="flex items-center gap-1.5">
+            <span className={`inline-block h-3 w-3 rounded ${TYPE_COLOR[t].dot}`} />
+            {TYPE_PREFIX[t]}
+          </span>
+        ))}
+        <span className="ml-2 text-pgray-400">· 지난 일정은 옅게 표시</span>
       </div>
 
       <Card className="overflow-hidden border-t-4 border-t-brand-600 p-0">
@@ -142,17 +159,18 @@ export default async function SchedulePage({
                     <div className="flex flex-col gap-1">
                       {dayItems.slice(0, 4).map((it) => {
                         const person = personOf(it);
+                        const t = it.type as RequestType;
+                        const c = TYPE_COLOR[t];
                         return (
                           <div
                             key={it.id}
-                            title={`${it.title}${person ? ` · ${person}` : ""}`}
-                            className={`flex items-center gap-1 rounded-md px-1.5 py-1 text-[11px] font-medium ${
-                              isDone(it) ? "bg-pgray-100 text-pgray-500" : "bg-brand-50 text-brand-700"
+                            title={`[${TYPE_PREFIX[t]}] ${it.title} · ${person}`}
+                            className={`flex items-center gap-1 truncate rounded-md px-1.5 py-1 text-[11px] font-medium ${
+                              isDone(it) ? c.done : c.chip
                             }`}
                           >
-                            <span className="shrink-0 font-bold">[{TYPE_PREFIX[it.type as RequestType]}]</span>
-                            <span className="min-w-0 flex-1 truncate">{it.title}</span>
-                            {person && <span className="shrink-0 text-[10px] opacity-70">· {person}</span>}
+                            <span className="shrink-0 font-bold">[{TYPE_PREFIX[t]}]</span>
+                            <span className="min-w-0 flex-1 truncate">{person}</span>
                           </div>
                         );
                       })}
@@ -181,7 +199,7 @@ export default async function SchedulePage({
                 <Link key={it.id} href={`/requests/${it.id}`} className="flex items-center justify-between gap-2 rounded-xl border border-pgray-100 bg-white px-4 py-3 hover:bg-pgray-50">
                   <span className="min-w-0">
                     <span className="flex items-center gap-1.5">
-                      <Badge color={isDone(it) ? "bg-pgray-100 text-pgray-500" : "bg-brand-100 text-brand-700"}>
+                      <Badge color={isDone(it) ? TYPE_COLOR[it.type as RequestType].done : TYPE_COLOR[it.type as RequestType].chip}>
                         [{TYPE_PREFIX[it.type as RequestType]}]
                       </Badge>
                       <span className="truncate font-medium text-pgray-800">{it.title}</span>

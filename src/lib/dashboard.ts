@@ -48,6 +48,25 @@ export async function getDashboardData(range: DashboardRange = {}) {
   const onHold = inRange.filter((r) => r.status === "ON_HOLD").length;
   const rejected = inRange.filter((r) => r.status === "REJECTED").length;
 
+  // ── KPI 3종(홍보신청/배포완료/진행보류) 연도별 비교 ─────────────────
+  // 배포완료 = 최종완료 + 배포완료, 진행보류 = 진행 중 + 보류
+  const nowY = new Date();
+  const isDone = (s: string) => s === "FINAL_COMPLETED" || s === "DISTRIBUTED";
+  const isHold = (s: string) => has(ACTIVE_STATUSES, s) || s === "ON_HOLD";
+  const kpiCounts = (year: number) => {
+    const rows = allRows.filter((r) => new Date(r.createdAt).getFullYear() === year);
+    return {
+      total: rows.length,
+      done: rows.filter((r) => isDone(r.status)).length,
+      hold: rows.filter((r) => isHold(r.status)).length,
+    };
+  };
+  const kpi = {
+    year: nowY.getFullYear(),
+    thisYear: kpiCounts(nowY.getFullYear()),
+    lastYear: kpiCounts(nowY.getFullYear() - 1),
+  };
+
   // 유형별 (비율은 차트에서 Recharts가 계산 — 'percent' 키는 충돌하므로 사용하지 않음)
   const byType = Object.entries(REQUEST_TYPE_LABELS)
     .map(([key, label]) => {
@@ -85,14 +104,19 @@ export async function getDashboardData(range: DashboardRange = {}) {
     const k = monthKey(new Date(r.createdAt));
     monthCount.set(k, (monthCount.get(k) ?? 0) + 1);
   }
+  // 학년도 시작(3월)부터 현재 월까지 — 시간이 지날수록 월이 늘어난다.
+  const fyStart = now.getMonth() >= 2
+    ? new Date(now.getFullYear(), 2, 1)       // 3~12월: 올해 3월 시작
+    : new Date(now.getFullYear() - 1, 2, 1);  // 1~2월: 작년 3월 시작
+  const monthsSince = (now.getFullYear() * 12 + now.getMonth()) - (fyStart.getFullYear() * 12 + fyStart.getMonth());
   const monthly: { month: string; count: number; prevCount: number }[] = [];
-  for (let i = 11; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const k = monthKey(d);
+  for (let k = 0; k <= monthsSince; k++) {
+    const d = new Date(fyStart.getFullYear(), fyStart.getMonth() + k, 1);
+    const mk = monthKey(d);
     monthly.push({
-      month: `${String(d.getMonth() + 1).padStart(2, "0")}월`,
-      count: monthCount.get(k) ?? 0,
-      prevCount: monthCount.get(k - 12) ?? 0,
+      month: `${d.getMonth() + 1}월`,
+      count: monthCount.get(mk) ?? 0,
+      prevCount: monthCount.get(mk - 12) ?? 0,
     });
   }
 
@@ -163,6 +187,7 @@ export async function getDashboardData(range: DashboardRange = {}) {
 
   return {
     metrics: { total, inProgress, completed, distributed, onHold, rejected, topDept },
+    kpi,
     byType,
     byDepartment,
     byStatus,
@@ -223,12 +248,12 @@ export async function getJournalStats() {
   return { all, topTier, topTierTotal, totalResearch: rows.length };
 }
 
-// KPI 카드 → 현황 목록 버킷 정의
+// KPI 카드(3종) → 현황 목록 버킷 정의
 export const BUCKETS: Record<string, { label: string; match: (s: string) => boolean }> = {
-  total: { label: "전체 신청", match: () => true },
-  inProgress: { label: "진행 중", match: (s) => ACTIVE_STATUSES.includes(s as RequestStatus) },
-  completed: { label: "최종 완료", match: (s) => s === "FINAL_COMPLETED" },
-  distributed: { label: "배포 완료", match: (s) => s === "DISTRIBUTED" },
-  onHold: { label: "보류", match: (s) => s === "ON_HOLD" },
-  rejected: { label: "반려", match: (s) => s === "REJECTED" },
+  total: { label: "홍보신청", match: () => true },
+  done: { label: "배포완료", match: (s) => s === "FINAL_COMPLETED" || s === "DISTRIBUTED" },
+  hold: {
+    label: "진행보류",
+    match: (s) => ACTIVE_STATUSES.includes(s as RequestStatus) || s === "ON_HOLD",
+  },
 };
