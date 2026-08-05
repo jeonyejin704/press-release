@@ -20,12 +20,16 @@ export async function syncNaverNews(opts: { throttleMs?: number } = {}): Promise
   }
   lastSyncAt = now;
 
-  // 기본 키워드(포스텍/POSTECH/포항공과대학교/포항공대)가 없으면 자동 추가
-  await Promise.all(
-    DEFAULT_KEYWORDS.map((keyword) =>
-      prisma.newsKeyword.upsert({ where: { keyword }, create: { keyword }, update: {} }),
-    ),
-  );
+  // 키워드가 하나도 없을 때만 기본 키워드(포스텍/POSTECH/포항공과대학교/포항공대) 최초 1회 시딩.
+  // (사용자가 삭제한 키워드가 매번 되살아나지 않도록 upsert 하지 않는다)
+  const total = await prisma.newsKeyword.count();
+  if (total === 0) {
+    await Promise.all(
+      DEFAULT_KEYWORDS.map((keyword) =>
+        prisma.newsKeyword.create({ data: { keyword } }).catch(() => null),
+      ),
+    );
+  }
 
   const keywords = await prisma.newsKeyword.findMany({ where: { active: true } });
   const kwList = keywords.map((k) => k.keyword);

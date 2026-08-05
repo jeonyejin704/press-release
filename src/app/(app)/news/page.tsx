@@ -27,7 +27,8 @@ export default async function NewsPage() {
   return (
     <NewsClient
       news={JSON.parse(JSON.stringify(news))}
-      keywords={keywords.map((k) => k.keyword)}
+      keywords={keywords.filter((k) => k.active).map((k) => k.keyword)}
+      keywordRecords={JSON.parse(JSON.stringify(keywords))}
       provider={sync?.provider ?? "mock"}
       syncError={sync?.error ?? null}
       connected={connected}

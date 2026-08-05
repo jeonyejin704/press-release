@@ -9,6 +9,7 @@ import { Card, Button, Badge, EmptyState, Field, inputClass } from "@/components
 export function NewsClient({
   news,
   keywords,
+  keywordRecords = [],
   provider = "mock",
   syncError = null,
   connected = false,
@@ -16,6 +17,7 @@ export function NewsClient({
 }: {
   news: any[];
   keywords: string[];
+  keywordRecords?: any[];
   provider?: string;
   syncError?: string | null;
   connected?: boolean;
@@ -24,7 +26,9 @@ export function NewsClient({
   const router = useRouter();
   const [filter, setFilter] = useState<string>("");
   const [busy, setBusy] = useState(false);
-  const [setupOpen, setSetupOpen] = useState(false);
+  // 연결 안 됨(mock)이면 연결 폼을 처음부터 펼쳐 보여준다(놓치지 않도록).
+  const [setupOpen, setSetupOpen] = useState(provider === "mock");
+  const [keywordsOpen, setKeywordsOpen] = useState(false);
 
   const filtered = filter ? news.filter((n) => n.keyword === filter) : news;
   const importantCount = news.filter((n) => n.isImportant).length;
@@ -66,7 +70,13 @@ export function NewsClient({
             네이버 뉴스 실시간 수집 · 키워드 {keywords.length}개 · 중요 표시 {importantCount}건
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => setKeywordsOpen((o) => !o)}
+            className="rounded-lg border border-pgray-200 px-3 py-2 text-sm font-medium text-pgray-600 hover:bg-pgray-50"
+          >
+            🔤 키워드 관리
+          </button>
           <button
             onClick={() => setSetupOpen((o) => !o)}
             className="rounded-lg border border-pgray-200 px-3 py-2 text-sm font-medium text-pgray-600 hover:bg-pgray-50"
@@ -96,6 +106,14 @@ export function NewsClient({
           <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-brand-500" />
           네이버 뉴스 실시간 연동 중 — 페이지에 들어올 때마다 최신 기사를 수집합니다.
         </div>
+      )}
+
+      {keywordsOpen && (
+        <KeywordManager
+          records={keywordRecords}
+          onClose={() => setKeywordsOpen(false)}
+          onChanged={() => router.refresh()}
+        />
       )}
 
       {setupOpen && (
@@ -147,6 +165,131 @@ export function NewsClient({
         </div>
       )}
     </div>
+  );
+}
+
+function KeywordManager({
+  records,
+  onClose,
+  onChanged,
+}: {
+  records: any[];
+  onClose: () => void;
+  onChanged: () => void;
+}) {
+  const [adding, setAdding] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [editId, setEditId] = useState<string | null>(null);
+  const [editVal, setEditVal] = useState("");
+
+  async function call(url: string, method: string, body?: any) {
+    setError("");
+    setBusy(true);
+    try {
+      const res = await fetch(url, {
+        method,
+        ...(body ? { headers: { "content-type": "application/json" }, body: JSON.stringify(body) } : {}),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(d.error ?? "처리에 실패했습니다.");
+        return false;
+      }
+      return true;
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function add() {
+    const kw = adding.trim();
+    if (!kw) return;
+    if (await call("/api/news/keywords", "POST", { keyword: kw })) {
+      setAdding("");
+      onChanged();
+    }
+  }
+  async function remove(id: string) {
+    if (!confirm("이 키워드를 삭제할까요? (이 키워드로는 더 이상 기사를 수집하지 않습니다)")) return;
+    if (await call(`/api/news/keywords/${id}`, "DELETE")) onChanged();
+  }
+  async function toggle(id: string, active: boolean) {
+    if (await call(`/api/news/keywords/${id}`, "PATCH", { active: !active })) onChanged();
+  }
+  async function saveEdit(id: string) {
+    const kw = editVal.trim();
+    if (!kw) return;
+    if (await call(`/api/news/keywords/${id}`, "PATCH", { keyword: kw })) {
+      setEditId(null);
+      onChanged();
+    }
+  }
+
+  return (
+    <Card className="mb-4 border-t-4 border-t-brand-600 p-5">
+      <div className="mb-1 flex items-center justify-between">
+        <div className="font-bold text-pgray-900">🔤 검색 키워드 관리</div>
+        <button onClick={onClose} className="text-sm text-pgray-400 hover:underline">닫기 ✕</button>
+      </div>
+      <p className="mb-3 text-sm text-pgray-500">
+        여기에 등록된 키워드로 네이버 뉴스를 검색합니다. 켜기/끄기, 이름 수정, 삭제, 추가가 가능합니다.
+      </p>
+
+      <div className="mb-3 space-y-2">
+        {records.length === 0 ? (
+          <p className="py-2 text-sm text-pgray-400">등록된 키워드가 없습니다. 아래에서 추가하세요.</p>
+        ) : (
+          records.map((k) => (
+            <div key={k.id} className="flex items-center gap-2 rounded-lg border border-pgray-100 bg-pgray-50 px-3 py-2">
+              {editId === k.id ? (
+                <>
+                  <input
+                    className={`${inputClass} h-8 py-1`}
+                    value={editVal}
+                    onChange={(e) => setEditVal(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && saveEdit(k.id)}
+                    autoFocus
+                  />
+                  <button disabled={busy} onClick={() => saveEdit(k.id)} className="shrink-0 rounded-md bg-brand-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-brand-700">저장</button>
+                  <button onClick={() => setEditId(null)} className="shrink-0 rounded-md px-2 py-1 text-xs text-pgray-500 hover:bg-pgray-100">취소</button>
+                </>
+              ) : (
+                <>
+                  <span className={`flex-1 font-medium ${k.active ? "text-pgray-800" : "text-pgray-400 line-through"}`}>
+                    {k.keyword}
+                  </span>
+                  <button
+                    disabled={busy}
+                    onClick={() => toggle(k.id, k.active)}
+                    className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${
+                      k.active ? "bg-brand-100 text-brand-700" : "bg-pgray-200 text-pgray-500"
+                    }`}
+                    title="수집 켜기/끄기"
+                  >
+                    {k.active ? "수집 중" : "꺼짐"}
+                  </button>
+                  <button onClick={() => { setEditId(k.id); setEditVal(k.keyword); }} className="shrink-0 rounded-md px-2 py-1 text-xs text-pgray-500 hover:bg-pgray-100">수정</button>
+                  <button disabled={busy} onClick={() => remove(k.id)} className="shrink-0 rounded-md px-2 py-1 text-xs text-pgray-400 hover:bg-pgray-100 hover:text-brand-600">삭제</button>
+                </>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+
+      <div className="flex items-center gap-2">
+        <input
+          className={inputClass}
+          value={adding}
+          onChange={(e) => setAdding(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && add()}
+          placeholder="새 키워드 입력 (예: 포항공과대학교)"
+        />
+        <Button disabled={busy || !adding.trim()} onClick={add}>추가</Button>
+      </div>
+      {error && <p className="mt-2 text-sm font-medium text-brand-600">{error}</p>}
+    </Card>
   );
 }
 
