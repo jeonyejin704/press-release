@@ -4,9 +4,9 @@ import { getCurrentUser, isManager } from "@/lib/session";
 import { getDashboardData, BUCKETS, type DashboardRequest } from "@/lib/dashboard";
 import { prisma } from "@/lib/prisma";
 import { Card, StatusBadge, Badge, EmptyState } from "@/components/ui";
-import { MonthlyTrend, TypePie, DepartmentBar } from "@/components/DashboardCharts";
+import { MonthlyTrend, TypePie, DepartmentBar, AdSpendTrend } from "@/components/DashboardCharts";
 import { DashboardNews } from "@/components/DashboardNews";
-import { REQUEST_TYPE_LABELS, type RequestType } from "@/lib/enums";
+import { REQUEST_TYPE_LABELS, REQUEST_TYPES, type RequestType } from "@/lib/enums";
 
 export const dynamic = "force-dynamic";
 
@@ -53,6 +53,11 @@ export default async function DashboardPage({
   ];
 
   const rangeLabel = sp.from || sp.to ? `${sp.from ?? "처음"} ~ ${sp.to ?? "오늘"}` : "전체 기간";
+  const ty = new Date().getFullYear();
+
+  // 파이 각 조각 클릭 → 연구성과는 저널 상세, 그 외는 해당 유형 목록
+  const typeLinkMap: Record<string, string> = { RESEARCH: "/dashboard/journals" };
+  for (const t of REQUEST_TYPES) if (t !== "RESEARCH") typeLinkMap[t] = `/requests?type=${t}`;
 
   return (
     <div className="space-y-7">
@@ -98,8 +103,8 @@ export default async function DashboardPage({
               }`}
             >
               <div className="text-sm text-pgray-500">{k.label}</div>
-              <div className={`mt-1 text-4xl font-extrabold tracking-tight ${TONE[k.tone]}`}>{k.value}</div>
-              <div className="mt-1 text-[11px] text-pgray-400">클릭하여 목록 보기</div>
+              <div className={`mt-1 font-display text-[2.6rem] leading-none ${TONE[k.tone]}`}>{k.value}</div>
+              <div className="mt-2 text-[11px] text-pgray-400">클릭하여 목록 보기</div>
             </Card>
           </Link>
         ))}
@@ -132,7 +137,7 @@ export default async function DashboardPage({
         <Card className="p-5">
           <SectionTitle>
             월별 신청 추이
-            <span className="ml-1 text-xs font-normal text-pgray-400">올해 · 전년 동월 비교</span>
+            <span className="ml-1 text-xs font-normal text-pgray-400">{ty} · {ty - 1} 동월 비교</span>
           </SectionTitle>
           <MonthlyTrend data={d.monthly} />
         </Card>
@@ -144,20 +149,44 @@ export default async function DashboardPage({
             </Link>
           </div>
           {d.byType.length ? (
-            <TypePie data={d.byType} linkMap={{ RESEARCH: "/dashboard/journals" }} />
+            <TypePie data={d.byType} linkMap={typeLinkMap} />
           ) : (
             <EmptyState title="데이터 없음" />
           )}
-          <p className="mt-1 text-center text-[11px] text-pgray-400">‘연구성과’ 조각을 클릭하면 저널 게재 현황을 볼 수 있어요.</p>
+          <p className="mt-1 text-center text-[11px] text-pgray-400">각 조각을 클릭하면 저널 게재 현황을 볼 수 있어요.</p>
         </Card>
         <Card className="p-5">
           <SectionTitle>
             학과별 신청 건수
-            <span className="ml-1 text-xs font-normal text-pgray-400">올해 · 전년 비교 (최다: {d.metrics.topDept})</span>
+            <span className="ml-1 text-xs font-normal text-pgray-400">{ty} · {ty - 1} 비교 (최다: {d.metrics.topDept})</span>
           </SectionTitle>
           {d.byDepartment.length ? <DepartmentBar data={d.byDepartment} /> : <EmptyState title="데이터 없음" />}
         </Card>
       </div>
+
+      {/* ── 광고비 집행 현황 ─────────────────────────── */}
+      <Card className="p-5">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <SectionTitle>
+            광고비 집행 현황
+            <span className="ml-1 text-xs font-normal text-pgray-400">{ty} · {ty - 1} 월별 비교</span>
+          </SectionTitle>
+          <div className="flex items-center gap-4">
+            <div className="text-right">
+              <div className="text-[11px] text-pgray-400">{ty} 집행 합계</div>
+              <div className="font-display text-xl text-brand-700">{manwon(d.adSpend.thisYearTotal)}</div>
+            </div>
+            <div className="text-right">
+              <div className="text-[11px] text-pgray-400">{ty - 1} 집행 합계</div>
+              <div className="font-display text-xl text-accent-600">{manwon(d.adSpend.lastYearTotal)}</div>
+            </div>
+            <Link href="/ads" className="text-xs font-medium text-brand-600 hover:underline">
+              내역 관리 →
+            </Link>
+          </div>
+        </div>
+        <AdSpendTrend data={d.adSpend.monthly} />
+      </Card>
 
       {/* ── 3행: 오늘 배포 보도자료 (전체 너비 한 줄) ─────────── */}
       <Card className="border-t-4 border-t-brand-600 p-5">
@@ -216,6 +245,13 @@ const TONE: Record<string, string> = {
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return <div className="mb-2 text-base font-bold text-pgray-900">{children}</div>;
+}
+
+// 원 → 사람이 읽기 쉬운 금액 (억/만원)
+function manwon(v: number): string {
+  if (v >= 100000000) return `${(v / 100000000).toFixed(1)}억원`;
+  if (v >= 10000) return `${Math.round(v / 10000).toLocaleString()}만원`;
+  return `${v.toLocaleString()}원`;
 }
 
 function fmt(d: string | null) {

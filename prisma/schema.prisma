@@ -331,3 +331,19 @@ model NewsKeyword {
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
 }
+
+// ---------------------------------------------------------------------------
+// 광고비 집행 내역 (Advertising spend)
+// ---------------------------------------------------------------------------
+model AdSpend {
+  id         String   @id @default(cuid())
+  title      String   // 집행 건명 / 캠페인
+  medium     String   // 매체 (예: 네이버, 유튜브, 신문, 라디오, 옥외)
+  amount     Int      // 집행액 (원)
+  executedAt DateTime // 집행일
+  department String?
+  note       String?
+  createdAt  DateTime @default(now())
+
+  @@index([executedAt])
+}

@@ -41,7 +41,7 @@ export default async function JournalsPage() {
           {stats.topTier.map((t) => (
             <Card key={t.name} className="p-5 text-center">
               <div className="text-lg font-bold text-pgray-800">{t.name}</div>
-              <div className="mt-1 text-4xl font-extrabold text-brand-600">{t.count}</div>
+              <div className="mt-1 font-display text-[2.6rem] leading-none text-brand-600">{t.count}</div>
               <div className="text-xs text-pgray-400">게재 건</div>
             </Card>
           ))}

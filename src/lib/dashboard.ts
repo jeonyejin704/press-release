@@ -128,6 +128,30 @@ export async function getDashboardData(range: DashboardRange = {}) {
 
   const topDept = byDepartment[0]?.label ?? "-";
 
+  // ── 광고비 집행 (월별 올해/전년 + 연간 합계) ──────────────────────────────
+  const ads = await prisma.adSpend.findMany({ select: { amount: true, executedAt: true } });
+  const thisYearNum = now.getFullYear();
+  const adMonthYoY = new Map<number, number>(); // monthKey -> 합계
+  let adThisYearTotal = 0;
+  let adLastYearTotal = 0;
+  for (const a of ads) {
+    const dt = new Date(a.executedAt);
+    adMonthYoY.set(monthKey(dt), (adMonthYoY.get(monthKey(dt)) ?? 0) + a.amount);
+    // 합계는 달력연도 기준 (광고비 페이지와 일치)
+    if (dt.getFullYear() === thisYearNum) adThisYearTotal += a.amount;
+    else if (dt.getFullYear() === thisYearNum - 1) adLastYearTotal += a.amount;
+  }
+  const adMonthly: { month: string; thisYear: number; lastYear: number }[] = [];
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const k = monthKey(d);
+    adMonthly.push({
+      month: `${String(d.getMonth() + 1).padStart(2, "0")}월`,
+      thisYear: adMonthYoY.get(k) ?? 0,
+      lastYear: adMonthYoY.get(k - 12) ?? 0,
+    });
+  }
+
   return {
     metrics: { total, inProgress, completed, distributed, onHold, rejected, topDept },
     byType,
@@ -135,6 +159,12 @@ export async function getDashboardData(range: DashboardRange = {}) {
     byStatus,
     monthly,
     todayRelease,
+    adSpend: {
+      monthly: adMonthly,
+      thisYearTotal: adThisYearTotal,
+      lastYearTotal: adLastYearTotal,
+      count: ads.length,
+    },
     requests: inRange.map(serialize), // 기간 필터된 전체(현황 목록용)
     lists: {
       materialNeeded: materialNeeded.map(serialize),

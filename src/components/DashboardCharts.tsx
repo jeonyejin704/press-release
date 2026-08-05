@@ -23,6 +23,10 @@ const ORANGE = "#f6a700";
 const GRAY = "#7a7772";
 const COLORS = [RED, ORANGE, GRAY, "#cd527d", "#fcc74c", "#b7b4b0"];
 
+// 연도 라벨 (올해 = 현재 연도, 전년 = 그 이전)
+const THIS_YEAR = `${new Date().getFullYear()}년`;
+const LAST_YEAR = `${new Date().getFullYear() - 1}년`;
+
 // ── 월별 신청 추이 (올해 vs 전년 동월) ─────────────────────────────
 export function MonthlyTrend({
   data,
@@ -37,8 +41,8 @@ export function MonthlyTrend({
         <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
         <Tooltip formatter={(v: number, n: string) => [`${v}건`, n]} />
         <Legend wrapperStyle={{ fontSize: 12 }} />
-        <Line type="monotone" dataKey="prevCount" name="전년" stroke={ORANGE} strokeWidth={2} strokeDasharray="5 4" dot={{ r: 2 }} isAnimationActive={false} />
-        <Line type="monotone" dataKey="count" name="올해" stroke={RED} strokeWidth={2.5} dot={{ r: 3 }} isAnimationActive={false} />
+        <Line type="monotone" dataKey="prevCount" name={LAST_YEAR} stroke={ORANGE} strokeWidth={2} strokeDasharray="5 4" dot={{ r: 2 }} isAnimationActive={false} />
+        <Line type="monotone" dataKey="count" name={THIS_YEAR} stroke={RED} strokeWidth={2.5} dot={{ r: 3 }} isAnimationActive={false} />
       </LineChart>
     </ResponsiveContainer>
   );
@@ -88,8 +92,8 @@ export function TypePie({
           nameKey="label"
           cx="50%"
           cy="50%"
-          innerRadius={44}
-          outerRadius={72}
+          innerRadius={30}
+          outerRadius={78}
           paddingAngle={2}
           label={makeLabel()}
           labelLine={false}
@@ -109,7 +113,7 @@ export function TypePie({
         </Pie>
         <Tooltip
           formatter={(v: number, _n: string, p: any) => [
-            `${v}건${clickable(p?.payload?.key) ? " · 클릭하면 저널 상세" : ""}`,
+            `${v}건${clickable(p?.payload?.key) ? " · 클릭하여 상세" : ""}`,
             p?.payload?.label,
           ]}
         />
@@ -132,8 +136,30 @@ export function DepartmentBar({
         <YAxis type="category" dataKey="label" width={78} tick={{ fontSize: 11 }} />
         <Tooltip formatter={(v: number, n: string) => [`${v}건`, n]} />
         <Legend wrapperStyle={{ fontSize: 12 }} />
-        <Bar dataKey="thisYear" name="올해" fill={RED} radius={[0, 3, 3, 0]} />
-        <Bar dataKey="lastYear" name="전년" fill={ORANGE} radius={[0, 3, 3, 0]} />
+        <Bar dataKey="thisYear" name={THIS_YEAR} fill={RED} radius={[0, 3, 3, 0]} />
+        <Bar dataKey="lastYear" name={LAST_YEAR} fill={ORANGE} radius={[0, 3, 3, 0]} />
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
+// ── 광고비 집행액 추이 (올해 vs 전년, 월별) ────────────────────────
+export function AdSpendTrend({
+  data,
+}: {
+  data: { month: string; thisYear: number; lastYear: number }[];
+}) {
+  const won = (v: number) => `${(v / 10000).toLocaleString()}만원`;
+  return (
+    <ResponsiveContainer width="100%" height={240}>
+      <BarChart data={data} margin={{ top: 10, right: 12, left: 6, bottom: 0 }} barGap={2}>
+        <CartesianGrid strokeDasharray="3 3" stroke="#eee7ea" vertical={false} />
+        <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+        <YAxis tickFormatter={(v: number) => `${Math.round(v / 10000)}만`} tick={{ fontSize: 10 }} width={44} />
+        <Tooltip formatter={(v: number, n: string) => [won(v), n]} />
+        <Legend wrapperStyle={{ fontSize: 12 }} />
+        <Bar dataKey="lastYear" name={LAST_YEAR} fill={ORANGE} radius={[3, 3, 0, 0]} />
+        <Bar dataKey="thisYear" name={THIS_YEAR} fill={RED} radius={[3, 3, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   );
