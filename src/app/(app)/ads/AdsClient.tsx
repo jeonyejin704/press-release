@@ -8,8 +8,8 @@ import { MediaSpendCompare } from "./MediaSpendCompare";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-// 매체 예시(자유 입력 가능 — 학교 실제 집행 매체에 맞게 직접 입력하세요)
-const MEDIA_SUGGESTIONS = ["신문(지면)", "방송", "라디오", "잡지/전문지", "옥외(지하철/버스)", "학회지/협회보", "온라인 배너", "기타"];
+// 광고 유형 예시(자유 입력 가능)
+const AD_TYPE_SUGGESTIONS = ["신문(지면)", "포털(네이버/다음)", "동영상(유튜브 등)", "SNS", "방송", "라디오", "잡지/전문지", "옥외(지하철/버스)", "온라인 배너", "기타"];
 
 function manwon(v: number) {
   if (v >= 100000000) return `${(v / 100000000).toFixed(1)}억원`;
@@ -32,11 +32,18 @@ export function AdsClient({ ads, summary, mediaYoY = [], years = [], focusMonth,
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<{ willImport: number; skipped: number; errors: string[]; sample: any[] } | null>(null);
   const [saving, setSaving] = useState(false);
+  // 총 집행 건수 기간 필터(YYYY-MM). 비우면 전체.
+  const [countFrom, setCountFrom] = useState("");
+  const [countTo, setCountTo] = useState("");
+  const countInRange = ads.filter((a) => {
+    const ym = ymOf(a.executedAt);
+    return (!countFrom || ym >= countFrom) && (!countTo || ym <= countTo);
+  }).length;
 
   async function submit() {
     setError("");
-    if (!form.title || !form.amount || !form.month) {
-      setError("집행 건명·집행액·집행월은 필수입니다.");
+    if (!form.title || !form.medium || !form.amount || !form.month) {
+      setError("매체명·광고 유형·집행액·집행월은 필수입니다.");
       return;
     }
     setBusy(true);
@@ -188,18 +195,30 @@ export function AdsClient({ ads, summary, mediaYoY = [], years = [], focusMonth,
         </Card>
       )}
 
-      {/* 요약 */}
+      {/* 요약: 최근 3개 학년도 집행 합계 + 기간별 집행 건수 */}
       <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Card className="p-4"><div className="text-sm text-pgray-500">{summary.thisYear}학년도 집행 합계 <span className="text-xs text-pgray-400">(3월~2월)</span></div>
-          <div className="mt-1 font-display text-2xl text-brand-700">{manwon(summary.thisYearTotal)}</div></Card>
-        <Card className="p-4"><div className="text-sm text-pgray-500">{summary.thisYear - 1}학년도 집행 합계</div>
-          <div className="mt-1 font-display text-2xl text-accent-600">{manwon(summary.lastYearTotal)}</div></Card>
-        <Card className="p-4"><div className="text-sm text-pgray-500">전년 대비</div>
-          <div className="mt-1 font-display text-2xl text-pgray-700">
-            {summary.lastYearTotal ? `${summary.thisYearTotal >= summary.lastYearTotal ? "+" : ""}${Math.round((summary.thisYearTotal / summary.lastYearTotal - 1) * 100)}%` : "-"}
-          </div></Card>
-        <Card className="p-4"><div className="text-sm text-pgray-500">총 집행 건수</div>
-          <div className="mt-1 font-display text-2xl text-pgray-700">{summary.count}건</div></Card>
+        {summary.yearTotals.map((yt: any, i: number) => (
+          <Card key={yt.year} className="p-4">
+            <div className="text-sm text-pgray-500">{yt.year}학년도 집행 합계</div>
+            <div className={`mt-1 font-display text-2xl ${i === 0 ? "text-brand-700" : i === 1 ? "text-accent-600" : "text-pgray-600"}`}>{manwon(yt.total)}</div>
+          </Card>
+        ))}
+        <Card className="p-4">
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-pgray-500">총 집행 건수</div>
+            <div className="font-display text-2xl text-pgray-700">{countInRange}건</div>
+          </div>
+          <div className="mt-2 flex items-center gap-1">
+            <input type="month" value={countFrom} onChange={(e) => setCountFrom(e.target.value)}
+              className="w-full rounded border border-pgray-200 px-1.5 py-1 text-xs" title="시작월" />
+            <span className="text-xs text-pgray-400">~</span>
+            <input type="month" value={countTo} onChange={(e) => setCountTo(e.target.value)}
+              className="w-full rounded border border-pgray-200 px-1.5 py-1 text-xs" title="종료월" />
+          </div>
+          {(countFrom || countTo) && (
+            <button onClick={() => { setCountFrom(""); setCountTo(""); }} className="mt-1 text-[11px] text-pgray-400 hover:underline">전체 보기</button>
+          )}
+        </Card>
       </div>
 
       {/* 엑셀 일괄 업로드 */}
@@ -208,7 +227,7 @@ export function AdsClient({ ads, summary, mediaYoY = [], years = [], focusMonth,
           <div>
             <div className="font-bold text-pgray-900">📥 엑셀로 한 번에 올리기</div>
             <div className="text-sm text-pgray-500">
-              지금까지 엑셀로 관리하던 내역을 업로드하세요. 열 구성: <b>집행 건명 · 매체 · 집행액(원) · 집행월</b>
+              지금까지 엑셀로 관리하던 내역을 업로드하세요. 열 구성: <b>매체명 · 광고 유형 · 집행액(원) · 집행월</b>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -245,7 +264,7 @@ export function AdsClient({ ads, summary, mediaYoY = [], years = [], focusMonth,
               <div className="mt-3 overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead className="text-left text-pgray-400">
-                    <tr><th className="py-1 pr-3">집행월</th><th className="py-1 pr-3">건명</th><th className="py-1 pr-3">매체</th><th className="py-1 text-right">집행액</th></tr>
+                    <tr><th className="py-1 pr-3">집행월</th><th className="py-1 pr-3">매체명</th><th className="py-1 pr-3">광고 유형</th><th className="py-1 text-right">집행액</th></tr>
                   </thead>
                   <tbody className="text-pgray-700">
                     {preview.sample.map((s, i) => (
@@ -284,14 +303,14 @@ export function AdsClient({ ads, summary, mediaYoY = [], years = [], focusMonth,
       {open && (
         <Card className="mb-4 p-5">
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="sm:col-span-2"><Field label="집행 건명" required>
-              <input className={inputClass} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="예: 신입생 모집 홍보 캠페인" /></Field></div>
-            <Field label="매체" required>
-              <input className={inputClass} list="medium-suggestions" value={form.medium}
+            <Field label="매체명" required>
+              <input className={inputClass} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="예: 조선일보, 네이버, 경북일보" /></Field>
+            <Field label="광고 유형" required>
+              <input className={inputClass} list="adtype-suggestions" value={form.medium}
                 onChange={(e) => setForm({ ...form, medium: e.target.value })}
-                placeholder="예: 신문(지면), 방송, 옥외 등 직접 입력" />
-              <datalist id="medium-suggestions">
-                {MEDIA_SUGGESTIONS.map((m) => <option key={m} value={m} />)}
+                placeholder="예: 신문(지면), 포털, 동영상 등" />
+              <datalist id="adtype-suggestions">
+                {AD_TYPE_SUGGESTIONS.map((m) => <option key={m} value={m} />)}
               </datalist></Field>
             <Field label="집행액 (원)" required>
               <input type="number" className={inputClass} value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder="예: 5000000" /></Field>
@@ -333,7 +352,7 @@ export function AdsClient({ ads, summary, mediaYoY = [], years = [], focusMonth,
             <div className="max-h-[30rem] overflow-auto">
               <table className="w-full text-sm">
                 <thead className="sticky top-0 bg-pgray-50 text-left text-xs uppercase text-pgray-500">
-                  <tr><th className="px-4 py-2">집행월</th><th className="px-4 py-2">건명</th><th className="px-4 py-2">매체</th><th className="px-4 py-2 text-right">집행액</th><th className="px-4 py-2"></th></tr>
+                  <tr><th className="px-4 py-2">집행월</th><th className="px-4 py-2">매체명</th><th className="px-4 py-2">광고 유형</th><th className="px-4 py-2 text-right">집행액</th><th className="px-4 py-2"></th></tr>
                 </thead>
                 <tbody className="divide-y divide-pgray-100">
                   {ads.map((a) => (

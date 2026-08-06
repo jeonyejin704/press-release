@@ -57,16 +57,16 @@ export async function POST(req: Request) {
   for (let i = 0; i < rows.length; i++) {
     const r = rows[i];
     const line = i + 2;
-    const title = norm(r["집행 건명"] ?? r["집행건명"] ?? r["건명"]);
-    const medium = norm(r["매체"]);
+    const title = norm(r["매체명"] ?? r["집행 건명"] ?? r["집행건명"] ?? r["건명"]);
+    const medium = norm(r["광고 유형"] ?? r["광고유형"] ?? r["매체"]);
     const amount = parseAmount(r["집행액(원)"] ?? r["집행액"] ?? r["금액"]);
     const executedAt = parseMonth(r["집행월"] ?? r["월"]);
 
     if (!title && !medium && !amount && !executedAt) continue;
 
     const problems: string[] = [];
-    if (!title) problems.push("집행 건명");
-    if (!medium) problems.push("매체");
+    if (!title) problems.push("매체명");
+    if (!medium) problems.push("광고 유형");
     if (!amount || amount <= 0) problems.push("집행액");
     if (!executedAt) problems.push("집행월");
     if (problems.length) {
