@@ -160,28 +160,33 @@ export async function getDashboardData(range: DashboardRange = {}) {
   const adMonthYoY = new Map<number, number>(); // monthKey -> 합계
   let adThisYearTotal = 0;
   let adLastYearTotal = 0;
+  let adTwoAgoTotal = 0;
   for (const a of ads) {
     const dt = new Date(a.executedAt);
     adMonthYoY.set(monthKey(dt), (adMonthYoY.get(monthKey(dt)) ?? 0) + a.amount);
     const fy = fiscalYearOf(dt);
     if (fy === currentFY) adThisYearTotal += a.amount;
     else if (fy === currentFY - 1) adLastYearTotal += a.amount;
+    else if (fy === currentFY - 2) adTwoAgoTotal += a.amount;
   }
   // 학년도 월 순서: 3,4,…,12,1,2 (i=0 → 3월). 1·2월은 학년도+1 달력연도.
   const monthOfFiscalPos = (i: number) => (2 + i) % 12; // 0-indexed month
   const calYearForFiscal = (fyStart: number, i: number) => (monthOfFiscalPos(i) >= 2 ? fyStart : fyStart + 1);
-  const adMonthly: { month: string; thisYear: number; lastYear: number; ymThis: string; ymLast: string }[] = [];
+  const adMonthly: { month: string; thisYear: number; lastYear: number; twoAgo: number; ymThis: string; ymLast: string; ymTwo: string }[] = [];
   for (let i = 0; i < 12; i++) {
     const mi = monthOfFiscalPos(i);
     const yThis = calYearForFiscal(currentFY, i);
     const yLast = calYearForFiscal(currentFY - 1, i);
+    const yTwo = calYearForFiscal(currentFY - 2, i);
     const mm = String(mi + 1).padStart(2, "0");
     adMonthly.push({
       month: `${mm}월`,
       thisYear: adMonthYoY.get(yThis * 12 + mi) ?? 0,
       lastYear: adMonthYoY.get(yLast * 12 + mi) ?? 0,
+      twoAgo: adMonthYoY.get(yTwo * 12 + mi) ?? 0,
       ymThis: `${yThis}-${mm}`,
       ymLast: `${yLast}-${mm}`,
+      ymTwo: `${yTwo}-${mm}`,
     });
   }
 
@@ -197,6 +202,7 @@ export async function getDashboardData(range: DashboardRange = {}) {
       monthly: adMonthly,
       thisYearTotal: adThisYearTotal,
       lastYearTotal: adLastYearTotal,
+      twoYearsAgoTotal: adTwoAgoTotal,
       fiscalYear: currentFY,
       count: ads.length,
     },

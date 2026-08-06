@@ -170,14 +170,13 @@ function MonitorCard({ n, onToggle }: { n: any; onToggle: () => void }) {
     <div className="group relative flex flex-col overflow-hidden rounded-xl border border-pgray-100 bg-white transition hover:shadow-md">
       <a href={n.url} target="_blank" rel="noopener noreferrer" className="flex flex-1 flex-col">
         <div className="relative aspect-[16/9] w-full overflow-hidden bg-pgray-50">
-          {n.imageUrl ? (
+          <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-pgray-100 to-pgray-50">
+            <span className={`font-display text-lg ${media.known ? "text-brand-600" : "text-pgray-400"}`}>{media.name || "기사"}</span>
+          </div>
+          {n.imageUrl && (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={n.imageUrl} alt="" loading="lazy" className="h-full w-full object-cover transition group-hover:scale-[1.03]"
+            <img src={n.imageUrl} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover transition group-hover:scale-[1.03]"
               onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-pgray-100 to-pgray-50">
-              <span className={`font-display text-lg ${media.known ? "text-brand-600" : "text-pgray-400"}`}>{media.name || "기사"}</span>
-            </div>
           )}
         </div>
         <div className="flex flex-1 flex-col gap-1 p-3">

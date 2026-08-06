@@ -143,25 +143,29 @@ export function DepartmentBar({
   );
 }
 
-// ── 광고비 집행액 추이 (올해 vs 전년, 월별) ────────────────────────
+// ── 광고비 집행액 추이 (최근 3개 학년도, 월별) ────────────────────────
 export function AdSpendTrend({
   data,
+  fiscalYear,
 }: {
-  data: { month: string; thisYear: number; lastYear: number; ymThis: string; ymLast: string }[];
+  data: { month: string; thisYear: number; lastYear: number; twoAgo: number; ymThis: string; ymLast: string; ymTwo: string }[];
+  fiscalYear: number;
 }) {
   const router = useRouter();
   const won = (v: number) => `${(v / 10000).toLocaleString()}만원`;
   const go = (ym?: string) => { if (ym) router.push(`/ads?month=${ym}`); };
+  const L = (y: number) => `${y}학년도`;
   return (
     <ResponsiveContainer width="100%" height={240}>
-      <BarChart data={data} margin={{ top: 10, right: 12, left: 6, bottom: 0 }} barGap={2}>
+      <BarChart data={data} margin={{ top: 10, right: 12, left: 6, bottom: 0 }} barGap={1} barCategoryGap="20%">
         <CartesianGrid strokeDasharray="3 3" stroke="#eee7ea" vertical={false} />
         <XAxis dataKey="month" tick={{ fontSize: 11 }} />
         <YAxis tickFormatter={(v: number) => `${Math.round(v / 10000)}만`} tick={{ fontSize: 10 }} width={44} />
         <Tooltip formatter={(v: number, n: string) => [won(v), n]} cursor={{ fill: "rgba(166,25,85,0.06)" }} />
         <Legend wrapperStyle={{ fontSize: 12 }} />
-        <Bar dataKey="lastYear" name={LAST_YEAR} fill={ORANGE} radius={[3, 3, 0, 0]} cursor="pointer" onClick={(d: any) => go(d?.ymLast)} />
-        <Bar dataKey="thisYear" name={THIS_YEAR} fill={RED} radius={[3, 3, 0, 0]} cursor="pointer" onClick={(d: any) => go(d?.ymThis)} />
+        <Bar dataKey="twoAgo" name={L(fiscalYear - 2)} fill={GRAY} radius={[3, 3, 0, 0]} cursor="pointer" onClick={(d: any) => go(d?.ymTwo)} />
+        <Bar dataKey="lastYear" name={L(fiscalYear - 1)} fill={ORANGE} radius={[3, 3, 0, 0]} cursor="pointer" onClick={(d: any) => go(d?.ymLast)} />
+        <Bar dataKey="thisYear" name={L(fiscalYear)} fill={RED} radius={[3, 3, 0, 0]} cursor="pointer" onClick={(d: any) => go(d?.ymThis)} />
       </BarChart>
     </ResponsiveContainer>
   );

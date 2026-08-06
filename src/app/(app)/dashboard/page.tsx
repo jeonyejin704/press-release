@@ -216,10 +216,7 @@ export default async function DashboardPage({
       {/* ── 광고비 집행 현황 ─────────────────────────── */}
       <Card className="border-t-4 border-t-brand-600 p-5">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <SectionTitle>
-            광고비 집행 현황
-            <span className="ml-1 text-xs font-normal text-pgray-400">{d.adSpend.fiscalYear}학년도(3월~2월) · 전년 월별 비교</span>
-          </SectionTitle>
+          <SectionTitle>광고비 집행 현황<span className="text-pgray-400">(최근 3개년)</span></SectionTitle>
           <div className="flex items-center gap-4">
             <div className="text-right">
               <div className="text-[11px] text-pgray-400">{d.adSpend.fiscalYear}학년도 집행 합계</div>
@@ -229,12 +226,16 @@ export default async function DashboardPage({
               <div className="text-[11px] text-pgray-400">{d.adSpend.fiscalYear - 1}학년도 집행 합계</div>
               <div className="font-display text-xl text-accent-600">{manwon(d.adSpend.lastYearTotal)}</div>
             </div>
+            <div className="text-right">
+              <div className="text-[11px] text-pgray-400">{d.adSpend.fiscalYear - 2}학년도 집행 합계</div>
+              <div className="font-display text-xl text-pgray-600">{manwon(d.adSpend.twoYearsAgoTotal)}</div>
+            </div>
             <Link href="/ads" className="text-xs font-medium text-brand-600 hover:underline">
               내역 관리 →
             </Link>
           </div>
         </div>
-        <AdSpendTrend data={d.adSpend.monthly} />
+        <AdSpendTrend data={d.adSpend.monthly} fiscalYear={d.adSpend.fiscalYear} />
       </Card>
 
       {/* ── 관련 기사 · 뉴스 모니터링 (전체 너비) ─────────── */}

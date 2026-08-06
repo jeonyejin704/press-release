@@ -88,10 +88,15 @@ export async function syncNaverNews(opts: { throttleMs?: number } = {}): Promise
     }
   }
 
-  // 새로 추가된 기사의 대표 이미지(og:image)를 best-effort로 캐시(앨범형 노출용)
-  if (addedUrls.length > 0) {
-    await ensureNewsImages(addedUrls).catch(() => null);
-  }
+  // 대표 이미지(og:image) 캐시 — 신규뿐 아니라 최근 기사 중 아직 이미지가 없는 것도 채운다.
+  // (이미지 기능 도입 이전에 수집된 기사도 방문할 때마다 조금씩 채워짐)
+  const recent = await prisma.newsItem.findMany({
+    orderBy: { publishedAt: "desc" },
+    take: 40,
+    select: { url: true },
+  });
+  const urlsToFill = Array.from(new Set([...addedUrls, ...recent.map((r) => r.url)]));
+  await ensureNewsImages(urlsToFill).catch(() => null);
 
   return { added, provider: provider.name, error: provider.lastError ?? null };
 }

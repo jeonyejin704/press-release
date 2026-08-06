@@ -39,7 +39,11 @@ async function fetchOgImage(url: string): Promise<string> {
       html.match(/<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i);
     let img = m?.[1] ?? "";
     if (img.startsWith("//")) img = "https:" + img;
-    return img.startsWith("http") ? img : "";
+    // https 페이지에서 http 이미지는 혼합콘텐츠로 차단되므로 https 로 승격(best-effort)
+    if (img.startsWith("http://")) img = "https://" + img.slice("http://".length);
+    // HTML 엔티티 정리
+    img = img.replace(/&amp;/g, "&");
+    return img.startsWith("https://") ? img : "";
   } catch {
     return "";
   }

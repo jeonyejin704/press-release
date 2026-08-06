@@ -78,13 +78,12 @@ export function NewsCard({ n }: { n: any }) {
       className="group flex flex-col overflow-hidden rounded-xl border border-pgray-100 bg-white transition hover:-translate-y-0.5 hover:shadow-md"
     >
       <div className="relative aspect-[16/9] w-full overflow-hidden bg-pgray-50">
-        {n.imageUrl ? (
-          <img src={n.imageUrl} alt="" loading="lazy" className="h-full w-full object-cover transition group-hover:scale-[1.03]"
-            onError={(e) => { (e.currentTarget.style.display = "none"); }} />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-pgray-100 to-pgray-50">
-            <span className={`font-display text-lg ${media.known ? "text-brand-600" : "text-pgray-400"}`}>{media.name || "기사"}</span>
-          </div>
+        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-pgray-100 to-pgray-50">
+          <span className={`font-display text-lg ${media.known ? "text-brand-600" : "text-pgray-400"}`}>{media.name || "기사"}</span>
+        </div>
+        {n.imageUrl && (
+          <img src={n.imageUrl} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover transition group-hover:scale-[1.03]"
+            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
         )}
         {n.isImportant && <span className="absolute left-2 top-2 rounded-full bg-accent-500 px-1.5 text-xs font-bold text-white">★</span>}
       </div>
