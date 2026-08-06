@@ -3,6 +3,7 @@ import { getCurrentUser, isManager } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { syncNaverNews } from "@/lib/news/sync";
 import { readSettings, maskSecret } from "@/lib/settings";
+import { readNewsImages } from "@/lib/news/images";
 import { NewsClient } from "./NewsClient";
 
 export const dynamic = "force-dynamic";
@@ -15,18 +16,20 @@ export default async function NewsPage() {
   // 페이지 진입 시 실시간으로 최신 기사를 수집(잦은 새로고침은 10초 스로틀).
   const sync = await syncNaverNews({ throttleMs: 10_000 }).catch(() => null);
 
-  const [news, keywords, settings] = await Promise.all([
+  const [news, keywords, settings, images] = await Promise.all([
     prisma.newsItem.findMany({ orderBy: { publishedAt: "desc" } }),
     prisma.newsKeyword.findMany({ orderBy: { createdAt: "asc" } }),
     readSettings(),
+    readNewsImages(),
   ]);
 
   const clientId = settings.NAVER_CLIENT_ID || process.env.NAVER_CLIENT_ID || "";
   const connected = (sync?.provider ?? "mock") === "naver";
+  const newsWithImg = news.map((n) => ({ ...n, imageUrl: images[n.url] || null }));
 
   return (
     <NewsClient
-      news={JSON.parse(JSON.stringify(news))}
+      news={JSON.parse(JSON.stringify(newsWithImg))}
       keywords={keywords.filter((k) => k.active).map((k) => k.keyword)}
       keywordRecords={JSON.parse(JSON.stringify(keywords))}
       provider={sync?.provider ?? "mock"}

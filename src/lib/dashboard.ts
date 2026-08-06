@@ -27,6 +27,7 @@ export async function getDashboardData(range: DashboardRange = {}) {
     include: {
       applicant: { select: { name: true } },
       releases: { where: { language: "KO" }, select: { subtitle: true } },
+      attachments: { where: { fileType: "PRESS_RELEASE_DRAFT" }, select: { id: true } },
     },
     orderBy: { createdAt: "desc" },
   });
@@ -138,17 +139,16 @@ export async function getDashboardData(range: DashboardRange = {}) {
       status: r.status,
     }));
 
-  // 처리 대기 목록 (기간과 무관)
-  const materialNeeded = allRows.filter((r) => r.status === "MATERIAL_REQUESTED");
-  const applicantReview = allRows.filter((r) => r.status === "APPLICANT_REVIEW");
-  const englishReview = allRows.filter(
-    (r) => r.status === "ENGLISH_DRAFTING" || r.status === "ENGLISH_REVIEW_REQUESTED",
+  // 처리 대기 목록 (기간과 무관) — 3분류
+  const hasDraft = (r: (typeof allRows)[number]) => (r.attachments?.length ?? 0) > 0;
+  // ① 새로운 홍보 신청: 연구진이 막 신청, 초안 파일 아직 없음(담당자 확인/후속 필요)
+  const newSubmissions = allRows.filter((r) => r.status === "SUBMITTED" && !hasDraft(r));
+  // ② 연구진 검토 대기: 연구진이 초안 파일을 올렸고 담당자가 아직 검토 전
+  const draftReview = allRows.filter((r) => r.status === "SUBMITTED" && hasDraft(r));
+  // ③ 보도자료 배포 예정: 최종본 확정 후 배포 대기(배포 완료 전)
+  const awaitingDistribution = allRows.filter(
+    (r) => r.status === "FINAL_COMPLETED" || r.status === "SCHEDULED",
   );
-  const stale = allRows.filter((r) => {
-    if (!has(ACTIVE_STATUSES, r.status)) return false;
-    const days = (now.getTime() - new Date(r.updatedAt).getTime()) / 86400000;
-    return days > 14;
-  });
 
   const topDept = byDepartment[0]?.label ?? "-";
 
@@ -202,10 +202,9 @@ export async function getDashboardData(range: DashboardRange = {}) {
     },
     requests: inRange.map(serialize), // 기간 필터된 전체(현황 목록용)
     lists: {
-      materialNeeded: materialNeeded.map(serialize),
-      applicantReview: applicantReview.map(serialize),
-      englishReview: englishReview.map(serialize),
-      stale: stale.map(serialize),
+      newSubmissions: newSubmissions.map(serialize),
+      draftReview: draftReview.map(serialize),
+      awaitingDistribution: awaitingDistribution.map(serialize),
     },
   };
 }

@@ -7,6 +7,7 @@ import { Card, StatusBadge, Badge, EmptyState } from "@/components/ui";
 import { MonthlyTrend, TypePie, DepartmentBar, AdSpendTrend } from "@/components/DashboardCharts";
 import { DashboardNews } from "@/components/DashboardNews";
 import { syncNaverNews } from "@/lib/news/sync";
+import { readNewsImages } from "@/lib/news/images";
 
 // 유형별 비율 도넛과 색을 맞추기 위한 팔레트(DashboardCharts COLORS 와 동일 순서)
 const PIE_COLORS = ["#a61955", "#f6a700", "#7a7772", "#cd527d", "#fcc74c", "#b7b4b0"];
@@ -31,10 +32,12 @@ export default async function DashboardPage({
   const d = await getDashboardData({ from, to });
   // 대시보드 진입 시에도 최신 기사 수집(뉴스 페이지보다 길게 5분 스로틀 — 대시보드는 자주 열림)
   await syncNaverNews({ throttleMs: 5 * 60_000 }).catch(() => null);
-  const [news, keywords] = await Promise.all([
+  const [news, keywords, newsImages] = await Promise.all([
     prisma.newsItem.findMany({ orderBy: { publishedAt: "desc" }, take: 25 }),
     prisma.newsKeyword.findMany({ where: { active: true }, orderBy: { createdAt: "asc" } }),
+    readNewsImages(),
   ]);
+  const newsForCard = news.map((n) => ({ ...n, imageUrl: newsImages[n.url] || null }));
 
   // 기간 파라미터를 보존한 KPI 링크 생성
   const rangeQS = new URLSearchParams();
@@ -109,7 +112,7 @@ export default async function DashboardPage({
               <div className="text-sm text-pgray-500">{k.label}</div>
               <div className={`mt-1 font-display text-[2.6rem] leading-none ${TONE[k.tone]}`}>{k.value}</div>
               <div className="mt-1 text-xs text-pgray-400">
-                {d.kpi.year} · 작년({d.kpi.year - 1}) <span className="font-semibold text-pgray-500">{k.last}</span>
+                작년({d.kpi.year - 1}) <span className="font-semibold text-pgray-500">{k.last}</span>
               </div>
               <div className="mt-1.5 text-[11px] text-pgray-400">클릭하여 목록 보기</div>
             </Card>
@@ -242,15 +245,14 @@ export default async function DashboardPage({
             전체 보기 →
           </Link>
         </div>
-        <DashboardNews news={JSON.parse(JSON.stringify(news))} keywords={keywords.map((k) => k.keyword)} />
+        <DashboardNews news={JSON.parse(JSON.stringify(newsForCard))} keywords={keywords.map((k) => k.keyword)} />
       </Card>
 
-      {/* 처리 대기 요약 */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <MiniList title="자료 보완 필요" items={d.lists.materialNeeded} />
-        <MiniList title="연구진 검토 대기" items={d.lists.applicantReview} />
-        <MiniList title="영문본 검토 대기" items={d.lists.englishReview} />
-        <MiniList title="장기 미처리 (14일+)" items={d.lists.stale} />
+      {/* 처리 대기 요약 (3분류) */}
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+        <MiniList title="새로운 홍보 신청" hint="연구진 신청 · 확인 전" items={d.lists.newSubmissions} />
+        <MiniList title="연구진 검토 대기" hint="초안 업로드됨 · 검토 전" items={d.lists.draftReview} />
+        <MiniList title="보도자료 배포 예정" hint="최종본 확정 · 배포 대기" items={d.lists.awaitingDistribution} />
       </div>
     </div>
   );
@@ -317,26 +319,29 @@ function BucketTable({ items }: { items: DashboardRequest[] }) {
   );
 }
 
-function MiniList({ title, items }: { title: string; items: DashboardRequest[] }) {
+function MiniList({ title, hint, items }: { title: string; hint?: string; items: DashboardRequest[] }) {
   return (
-    <Card className="border-t-4 border-t-brand-600 p-3">
-      <div className="mb-1.5 flex items-center justify-between">
-        <span className="text-sm font-semibold text-pgray-700">{title}</span>
+    <Card className="border-t-4 border-t-brand-600 p-4">
+      <div className="mb-1 flex items-center justify-between">
+        <span className="text-sm font-bold text-pgray-800">{title}</span>
         <Badge color={items.length ? "bg-accent-100 text-accent-800" : "bg-pgray-100 text-pgray-500"}>
           {items.length}
         </Badge>
       </div>
+      {hint && <p className="mb-2 text-[11px] text-pgray-400">{hint}</p>}
       {items.length === 0 ? (
-        <p className="py-2 text-center text-xs text-pgray-400">없음</p>
+        <p className="py-3 text-center text-xs text-pgray-400">없음</p>
       ) : (
-        <ul className="space-y-1">
-          {items.slice(0, 4).map((r) => (
+        <ul className="space-y-0.5">
+          {items.slice(0, 7).map((r) => (
             <li key={r.id}>
-              <Link href={`/requests/${r.id}`} className="block truncate rounded px-1.5 py-1 text-sm text-pgray-700 hover:bg-pgray-50">
-                {r.title}
+              <Link href={`/requests/${r.id}`} className="flex items-center justify-between gap-2 rounded px-1.5 py-1.5 text-sm text-pgray-700 hover:bg-pgray-50">
+                <span className="truncate">{r.title}</span>
+                <span className="shrink-0 text-[11px] text-pgray-400">{r.department ?? ""}</span>
               </Link>
             </li>
           ))}
+          {items.length > 7 && <li className="px-1.5 pt-1 text-[11px] text-pgray-400">외 {items.length - 7}건</li>}
         </ul>
       )}
     </Card>

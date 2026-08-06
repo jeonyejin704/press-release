@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, Button, Badge, EmptyState, Field, inputClass } from "@/components/ui";
 import { mentionedPerson } from "@/lib/mention";
+import { mediaLabel } from "@/lib/news/media";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -152,38 +153,54 @@ export function NewsClient({
       {filtered.length === 0 ? (
         <EmptyState title="수집된 뉴스가 없습니다." hint="'뉴스 새로고침'을 눌러보세요." />
       ) : (
-        <div className="space-y-2">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filtered.map((n) => (
-            <Card key={n.id} className="flex items-start justify-between gap-3 p-4">
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  {n.keyword && <Badge color="bg-brand-50 text-brand-700">{n.keyword}</Badge>}
-                  <span className="text-xs text-slate-400">{n.mediaName}</span>
-                  {n.publishedAt && (
-                    <span className="text-xs text-slate-400">
-                      {new Date(n.publishedAt).toLocaleString("ko-KR")}
-                    </span>
-                  )}
-                </div>
-                <a href={n.url} target="_blank" className="mt-1 block font-medium text-slate-800 hover:text-brand-700 hover:underline">
-                  {n.title}
-                  {mentionedPerson(n.title, n.summary) && (
-                    <span className="text-brand-600"> · {mentionedPerson(n.title, n.summary)}</span>
-                  )}
-                </a>
-                {n.summary && <p className="mt-1 line-clamp-2 text-sm text-slate-500">{n.summary}</p>}
-              </div>
-              <button
-                onClick={() => toggleImportant(n.id, n.isImportant)}
-                className={`shrink-0 text-2xl ${n.isImportant ? "text-accent-500" : "text-pgray-300 hover:text-accent-300"}`}
-                title="중요 표시"
-              >
-                ★
-              </button>
-            </Card>
+            <MonitorCard key={n.id} n={n} onToggle={() => toggleImportant(n.id, n.isImportant)} />
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function MonitorCard({ n, onToggle }: { n: any; onToggle: () => void }) {
+  const media = mediaLabel(n.mediaName);
+  const person = mentionedPerson(n.title, n.summary);
+  return (
+    <div className="group relative flex flex-col overflow-hidden rounded-xl border border-pgray-100 bg-white transition hover:shadow-md">
+      <a href={n.url} target="_blank" rel="noopener noreferrer" className="flex flex-1 flex-col">
+        <div className="relative aspect-[16/9] w-full overflow-hidden bg-pgray-50">
+          {n.imageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={n.imageUrl} alt="" loading="lazy" className="h-full w-full object-cover transition group-hover:scale-[1.03]"
+              onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-pgray-100 to-pgray-50">
+              <span className={`font-display text-lg ${media.known ? "text-brand-600" : "text-pgray-400"}`}>{media.name || "기사"}</span>
+            </div>
+          )}
+        </div>
+        <div className="flex flex-1 flex-col gap-1 p-3">
+          <div className="flex items-center gap-1.5 text-xs">
+            <span className={`font-bold ${media.known ? "text-brand-600" : "text-pgray-400"}`}>{media.name}</span>
+            {n.publishedAt && <span className="text-pgray-300">· {new Date(n.publishedAt).toLocaleDateString("ko-KR")}</span>}
+            {n.keyword && <span className="ml-auto rounded-full bg-pgray-100 px-1.5 text-[10px] text-pgray-500">{n.keyword}</span>}
+          </div>
+          <p className="line-clamp-2 text-sm font-medium text-pgray-800 group-hover:text-brand-700">
+            {n.title}
+            {person && <span className="text-brand-600"> · {person}</span>}
+          </p>
+        </div>
+      </a>
+      <button
+        onClick={onToggle}
+        title="중요 표시"
+        className={`absolute right-2 top-2 rounded-full bg-white/80 px-1.5 text-lg backdrop-blur ${
+          n.isImportant ? "text-accent-500" : "text-pgray-300 hover:text-accent-300"
+        }`}
+      >
+        ★
+      </button>
     </div>
   );
 }

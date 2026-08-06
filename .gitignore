@@ -43,3 +43,4 @@ yarn-error.log*
 # PressFlow runtime settings (secrets — never commit)
 .pressflow-settings.json
 .pressflow-ads-backup.json
+.pressflow-news-images.json
