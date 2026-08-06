@@ -32,13 +32,9 @@ export function AdsClient({ ads, summary, mediaYoY = [], years = [], focusMonth,
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<{ willImport: number; skipped: number; errors: string[]; sample: any[] } | null>(null);
   const [saving, setSaving] = useState(false);
-  // 총 집행 건수 기간 필터(YYYY-MM). 비우면 전체.
-  const [countFrom, setCountFrom] = useState("");
-  const [countTo, setCountTo] = useState("");
-  const countInRange = ads.filter((a) => {
-    const ym = ymOf(a.executedAt);
-    return (!countFrom || ym >= countFrom) && (!countTo || ym <= countTo);
-  }).length;
+  // 총 집행 건수 = 현재 학년도(3월~다음해 2월) 기준
+  const fiscalYearOf = (d: string) => { const x = new Date(d); return x.getMonth() >= 2 ? x.getFullYear() : x.getFullYear() - 1; };
+  const thisYearCount = ads.filter((a) => fiscalYearOf(a.executedAt) === summary.thisYear).length;
 
   async function submit() {
     setError("");
@@ -204,20 +200,8 @@ export function AdsClient({ ads, summary, mediaYoY = [], years = [], focusMonth,
           </Card>
         ))}
         <Card className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-pgray-500">총 집행 건수</div>
-            <div className="font-display text-2xl text-pgray-700">{countInRange}건</div>
-          </div>
-          <div className="mt-2 flex items-center gap-1">
-            <input type="month" value={countFrom} onChange={(e) => setCountFrom(e.target.value)}
-              className="w-full rounded border border-pgray-200 px-1.5 py-1 text-xs" title="시작월" />
-            <span className="text-xs text-pgray-400">~</span>
-            <input type="month" value={countTo} onChange={(e) => setCountTo(e.target.value)}
-              className="w-full rounded border border-pgray-200 px-1.5 py-1 text-xs" title="종료월" />
-          </div>
-          {(countFrom || countTo) && (
-            <button onClick={() => { setCountFrom(""); setCountTo(""); }} className="mt-1 text-[11px] text-pgray-400 hover:underline">전체 보기</button>
-          )}
+          <div className="text-sm text-pgray-500">총 집행 건수 <span className="text-xs text-pgray-400">({summary.thisYear}학년도)</span></div>
+          <div className="mt-1 font-display text-2xl text-pgray-700">{thisYearCount}건</div>
         </Card>
       </div>
 
