@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Card, Button, Badge, Field, inputClass, EmptyState } from "@/components/ui";
+import { MediaSpendCompare } from "./MediaSpendCompare";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -16,7 +17,7 @@ function manwon(v: number) {
   return `${v.toLocaleString()}원`;
 }
 
-export function AdsClient({ ads, summary, focusMonth, restorable = 0 }: { ads: any[]; summary: any; focusMonth?: string | null; restorable?: number }) {
+export function AdsClient({ ads, summary, mediaYoY = [], years = [], focusMonth, restorable = 0 }: { ads: any[]; summary: any; mediaYoY?: any[]; years?: number[]; focusMonth?: string | null; restorable?: number }) {
   const router = useRouter();
   const ymOf = (d: string) => { const x = new Date(d); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}`; };
   const focusAds = focusMonth ? ads.filter((a) => ymOf(a.executedAt) === focusMonth) : [];
@@ -352,6 +353,11 @@ export function AdsClient({ ads, summary, focusMonth, restorable = 0 }: { ads: a
             </div>
           )}
         </Card>
+      </div>
+
+      {/* 매체별 광고비 증감 현황 (작년·올해 비교, 과거 실적 추가 시 연도 자동 확장) */}
+      <div className="mt-4">
+        <MediaSpendCompare mediaYoY={mediaYoY} years={years} />
       </div>
     </div>
   );

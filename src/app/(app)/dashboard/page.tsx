@@ -178,11 +178,11 @@ export default async function DashboardPage({
         <Card className="border-t-4 border-t-brand-600 p-5">
           <div className="mb-1 flex items-center justify-between">
             <div className="text-base font-bold text-pgray-900">홍보 유형별 비율</div>
-            <Link href="/dashboard/journals" className="text-xs font-medium text-brand-600 hover:underline">
-              연구성과 저널 상세 →
+            <Link href="/requests" className="text-xs font-medium text-brand-600 hover:underline">
+              홍보 유형별 비율 상세 →
             </Link>
           </div>
-          <p className="mb-2 text-[11px] text-pgray-400">각 조각을 클릭하면 저널 게재 현황을 볼 수 있어요.</p>
+          <p className="mb-2 text-[11px] text-pgray-400">각 조각을 클릭하면 상세 현황을 볼 수 있어요.</p>
           {d.byType.length ? (
             <TypePie data={d.byType} linkMap={typeLinkMap} />
           ) : (

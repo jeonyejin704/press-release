@@ -37,6 +37,26 @@ export default async function AdsPage({
     .map(([medium, amount]) => ({ medium, amount }))
     .sort((a, b) => b.amount - a.amount);
 
+  // ── 매체별 · 학년도별 집행액(증감 비교용, 향후 과거 실적 추가되면 연도 자동 확장) ──
+  const yearsSet = new Set<number>();
+  const mediaYearMap = new Map<string, Map<number, number>>();
+  for (const a of ads) {
+    const fy = fiscalYearOf(new Date(a.executedAt));
+    yearsSet.add(fy);
+    if (!mediaYearMap.has(a.medium)) mediaYearMap.set(a.medium, new Map());
+    const mm = mediaYearMap.get(a.medium)!;
+    mm.set(fy, (mm.get(fy) ?? 0) + a.amount);
+  }
+  const years = Array.from(yearsSet).sort((x, y) => x - y);
+  const latestYear = years[years.length - 1];
+  const mediaYoY = Array.from(mediaYearMap.entries())
+    .map(([medium, ym]) => {
+      const byYear: Record<string, number> = {};
+      for (const y of years) byYear[String(y)] = ym.get(y) ?? 0;
+      return { medium, byYear };
+    })
+    .sort((a, b) => (b.byYear[String(latestYear)] ?? 0) - (a.byYear[String(latestYear)] ?? 0));
+
   // 대시보드 그래프에서 클릭한 월 (YYYY-MM)
   const sp = await searchParams;
   const focusMonth = sp.month && /^\d{4}-\d{2}$/.test(sp.month) ? sp.month : null;
@@ -47,6 +67,8 @@ export default async function AdsPage({
     <AdsClient
       ads={JSON.parse(JSON.stringify(ads))}
       summary={{ thisYear, thisYearTotal, lastYearTotal, mediums, count: ads.length }}
+      mediaYoY={mediaYoY}
+      years={years}
       focusMonth={focusMonth}
       restorable={restorable}
     />
