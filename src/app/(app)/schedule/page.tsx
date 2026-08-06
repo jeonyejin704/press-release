@@ -78,7 +78,7 @@ export default async function SchedulePage({
   const items = await prisma.pressRequest.findMany({
     where: { expectedPublishDate: { gte: monthStart, lt: monthEnd } },
     select: {
-      id: true, title: true, type: true, status: true, expectedPublishDate: true, department: true,
+      id: true, title: true, type: true, status: true, expectedPublishDate: true, department: true, note: true,
       applicant: { select: { name: true } },
       research: { select: { correspondingAuthorName: true, firstAuthorName: true } },
       award: { select: { awardeeName: true } },
@@ -168,7 +168,7 @@ export default async function SchedulePage({
                         return (
                           <div
                             key={it.id}
-                            title={`[${TYPE_PREFIX[t]}] ${it.title} · ${person}`}
+                            title={it.note || `[${TYPE_PREFIX[t]}] ${it.title} · ${person}`}
                             className={`flex items-center gap-1 truncate rounded-md px-1.5 py-1 text-[11px] font-medium ${
                               isDone(it) ? DONE_STYLE : c.chip
                             }`}
@@ -211,6 +211,7 @@ export default async function SchedulePage({
                     <span className="mt-1 block text-xs text-pgray-400">
                       {[personOf(it), it.department].filter(Boolean).join(" · ")}
                     </span>
+                    {it.note && <span className="mt-1 block truncate text-xs text-pgray-500">{it.note}</span>}
                   </span>
                   <StatusBadge status={it.status} />
                 </Link>

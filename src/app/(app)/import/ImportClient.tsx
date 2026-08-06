@@ -71,11 +71,20 @@ export function ImportClient() {
     setError("");
   }
 
+  async function clearDummy() {
+    const ans = prompt('시연용 더미 데이터를 포함해 현재 등록된 모든 신청·배포일정을 삭제합니다.\n계속하려면 "삭제"를 입력하세요. (되돌릴 수 없습니다)');
+    if (ans !== "삭제") return;
+    const res = await fetch("/api/requests/clear", { method: "DELETE" });
+    const d = await res.json().catch(() => ({}));
+    alert(`${d.deleted ?? 0}건을 삭제했습니다.`);
+    router.refresh();
+  }
+
   return (
     <div className="max-w-3xl">
       <h1 className="font-display text-2xl text-pgray-900">데이터 가져오기 (일괄 등록)</h1>
       <p className="mt-1 text-sm text-pgray-500">
-        지금까지 접수된 과거 <b>홍보 신청 내역</b>을 엑셀로 한 번에 등록합니다. 앞으로의 신청은 ‘새 홍보 신청’ 폼으로 하나씩 입력하세요.
+        보도자료 <b>배포일정</b>을 엑셀로 한 번에 등록합니다. <b>유형 · 대상자 · 배포예정일 · 내용</b>만 채우면 되며, 등록한 내용은 배포일정 달력에 표시됩니다.
       </p>
       <p className="mt-2 rounded-lg bg-accent-50 px-3 py-2 text-sm text-accent-800">
         ※ <b>광고비 내역</b>은 여기가 아니라 왼쪽 <b>‘광고비 집행’</b> 메뉴의 엑셀 업로드로 올려주세요.
@@ -100,7 +109,7 @@ export function ImportClient() {
       <Card className="mt-3 p-5">
         <div className="mb-1 font-bold text-pgray-900">2) 작성한 파일 업로드</div>
         <p className="mb-3 text-sm text-pgray-500">
-          필수 항목: <b>유형 · 제목 · 학과 · 신청일 · 상태</b>. (엑셀 .xlsx 또는 .csv)
+          열 구성: <b>유형 · 대상자 · 배포예정일 · 내용</b> (유형·배포예정일 필수). (엑셀 .xlsx 또는 .csv)
         </p>
         <label className="inline-flex cursor-pointer items-center rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700">
           {busy ? "파일 확인 중…" : "① 파일 선택"}
@@ -140,16 +149,15 @@ export function ImportClient() {
               <div className="mt-3 overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead className="text-left text-pgray-400">
-                    <tr><th className="py-1 pr-3">유형</th><th className="py-1 pr-3">제목</th><th className="py-1 pr-3">학과</th><th className="py-1 pr-3">신청자</th><th className="py-1">상태</th></tr>
+                    <tr><th className="py-1 pr-3">유형</th><th className="py-1 pr-3">대상자</th><th className="py-1 pr-3">배포예정일</th><th className="py-1">내용</th></tr>
                   </thead>
                   <tbody className="text-pgray-700">
                     {preview.sample.map((s, i) => (
                       <tr key={i} className="border-t border-brand-100">
                         <td className="py-1 pr-3 whitespace-nowrap">{s.type}</td>
-                        <td className="py-1 pr-3">{s.title}</td>
-                        <td className="py-1 pr-3 whitespace-nowrap">{s.department}</td>
-                        <td className="py-1 pr-3 whitespace-nowrap">{s.applicant}</td>
-                        <td className="py-1 whitespace-nowrap">{s.status}</td>
+                        <td className="py-1 pr-3 whitespace-nowrap">{s.subject}</td>
+                        <td className="py-1 pr-3 whitespace-nowrap">{s.date}</td>
+                        <td className="py-1 max-w-[16rem] truncate">{s.content}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -198,6 +206,21 @@ export function ImportClient() {
           </div>
         </Card>
       )}
+
+      {/* 초기화(더미 데이터 삭제) */}
+      <Card className="mt-6 border border-pgray-200 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <div className="text-sm font-bold text-pgray-700">시연용 더미 데이터 삭제</div>
+            <div className="text-xs text-pgray-400">
+              샘플로 들어있던 신청·배포일정을 모두 지우고, 실제 업로드 데이터로 시작할 수 있어요. (되돌릴 수 없음)
+            </div>
+          </div>
+          <button onClick={clearDummy} className="rounded-lg border border-pgray-200 px-3 py-2 text-sm font-medium text-pgray-500 hover:bg-pgray-50 hover:text-brand-600">
+            더미 데이터 삭제
+          </button>
+        </div>
+      </Card>
     </div>
   );
 }

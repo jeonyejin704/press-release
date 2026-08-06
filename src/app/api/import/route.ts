@@ -43,10 +43,6 @@ function parseDate(v: unknown): Date | null {
   return isNaN(d.getTime()) ? null : d;
 }
 
-function truthy(v: unknown): boolean {
-  const s = norm(v).toLowerCase();
-  return ["y", "yes", "예", "true", "1", "긴급", "o"].includes(s);
-}
 
 export async function POST(req: Request) {
   const user = await getCurrentUser();
@@ -88,11 +84,18 @@ export async function POST(req: Request) {
     return u.id;
   }
 
+  // 배포예정일 기준으로 상태 자동 결정(지난 날짜=배포 완료, 이후=배포 예정)
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  const deriveStatus = (d: Date): RequestStatus =>
+    d.getTime() < startOfToday.getTime() ? "DISTRIBUTED" : "SCHEDULED";
+
   // 1) 파싱 + 검증 (DB에 쓰지 않음)
+  // 배포일정용 간소 양식: 유형 · 대상자 · 배포예정일 · 내용 (구 양식 열도 호환)
   type ValidRow = {
     type: RequestType; status: RequestStatus; title: string; dept: string;
-    applicantName: string; applicantEmail: string; journal: string;
-    isUrgent: boolean; createdAt: Date; expectedPublishDate: Date | null;
+    subject: string; content: string; journal: string;
+    createdAt: Date; expectedPublishDate: Date;
   };
   const valid: ValidRow[] = [];
   const errors: string[] = [];
@@ -101,39 +104,45 @@ export async function POST(req: Request) {
     const r = rows[i];
     const line = i + 2; // header is row 1
     const typeRaw = norm(r["유형"]);
-    const title = norm(r["제목"]);
+    const subject = norm(r["대상자"] ?? r["신청자이름"] ?? r["신청자"]);
+    const content = norm(r["내용"] ?? r["content"]);
+    const publishDate = parseDate(r["배포예정일"] ?? r["예상배포일"]);
+    const titleGiven = norm(r["제목"]);
     const dept = norm(r["학과"] ?? r["소속"]);
-    const createdAt = parseDate(r["신청일"]);
     const statusRaw = norm(r["상태"]);
 
     // skip fully-empty rows silently
-    if (!typeRaw && !title && !dept && !statusRaw) continue;
+    if (!typeRaw && !subject && !content && !publishDate && !titleGiven) continue;
 
     const type = TYPE_BY_LABEL[typeRaw];
-    const status = STATUS_BY_LABEL[statusRaw];
     const problems: string[] = [];
     if (!type) problems.push(`유형('${typeRaw}')`);
-    if (!title) problems.push("제목");
-    if (!dept) problems.push("학과");
-    if (!createdAt) problems.push("신청일");
-    if (!status) problems.push(`상태('${statusRaw}')`);
+    if (!publishDate) problems.push("배포예정일");
     if (problems.length) {
       errors.push(`${line}행: ${problems.join(", ")} 확인 필요`);
       continue;
     }
 
+    const label = REQUEST_TYPE_LABELS[type];
+    // 제목: 명시값 > 내용 요약 > [유형] 대상자
+    const title = titleGiven || (content ? content.slice(0, 60) : subject ? `[${label}] ${subject}` : label);
+    // 상태: 명시값 있으면 사용, 없으면 배포예정일로 자동 결정
+    const status = STATUS_BY_LABEL[statusRaw] ?? deriveStatus(publishDate!);
+    // 신청일: 명시값 > 배포예정일
+    const createdAt = parseDate(r["신청일"]) ?? publishDate!;
+
     valid.push({
       type, status, title, dept,
-      applicantName: norm(r["신청자이름"] ?? r["신청자"]),
-      applicantEmail: norm(r["신청자이메일"] ?? r["이메일"]),
+      subject,
+      content,
       journal: norm(r["게재저널"] ?? r["저널"]),
-      isUrgent: truthy(r["긴급"]),
-      createdAt: createdAt!,
-      expectedPublishDate: parseDate(r["예상배포일"]),
+      createdAt,
+      expectedPublishDate: publishDate!,
     });
   }
 
   // 2) 미리보기 모드: 저장하지 않고 결과만 반환
+  const fmtDate = (d: Date) => `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`;
   if (mode === "preview") {
     return NextResponse.json({
       mode: "preview",
@@ -142,10 +151,9 @@ export async function POST(req: Request) {
       errors: errors.slice(0, 30),
       sample: valid.slice(0, 5).map((v) => ({
         type: REQUEST_TYPE_LABELS[v.type],
-        title: v.title,
-        department: v.dept,
-        applicant: v.applicantName || "미상",
-        status: REQUEST_STATUS_LABELS[v.status],
+        subject: v.subject || "-",
+        date: fmtDate(v.expectedPublishDate),
+        content: v.content || "-",
       })),
     });
   }
@@ -154,20 +162,21 @@ export async function POST(req: Request) {
   let imported = 0;
   for (const v of valid) {
     try {
-      const applicantId = await resolveApplicant(v.applicantName, v.applicantEmail, v.dept);
+      // 대상자 이름을 신청자(연구진)로 등록 → 배포일정에 '대상자'로 표시
+      const applicantId = await resolveApplicant(v.subject, "", v.dept);
       await prisma.pressRequest.create({
         data: {
           type: v.type,
           status: v.status,
           title: v.title,
-          department: v.dept,
+          department: v.dept || null,
           applicantId,
-          isUrgent: v.isUrgent,
+          note: v.content || null, // '내용' → 배포일정 툴팁에 표시
           createdAt: v.createdAt,
           updatedAt: v.createdAt,
           submittedAt: v.status === "DRAFT" ? null : v.createdAt,
           completedAt: v.status === "FINAL_COMPLETED" ? v.createdAt : null,
-          distributedAt: v.status === "DISTRIBUTED" ? v.createdAt : null,
+          distributedAt: v.status === "DISTRIBUTED" ? v.expectedPublishDate : null,
           expectedPublishDate: v.expectedPublishDate,
           ...(v.type === "RESEARCH" && v.journal
             ? { research: { create: { journalName: v.journal } } }
