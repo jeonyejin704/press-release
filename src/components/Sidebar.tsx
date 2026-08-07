@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ROLE_LABELS, type Role } from "@/lib/enums";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 type NavUser = { name: string; role: Role; department: string | null };
 type NavItem = { href: string; label: string; icon: string };
@@ -70,14 +71,17 @@ export function Sidebar({ user, unreadCount }: { user: NavUser; unreadCount: num
             );
           })}
         </nav>
-        <div className="mt-4 flex items-center justify-between border-t border-pgray-100 pt-4">
-          <div className="min-w-0 px-2">
-            <div className="truncate text-sm font-bold text-pgray-800">{user.name}</div>
-            <div className="text-xs text-pgray-400">{ROLE_LABELS[user.role]}</div>
+        <div className="mt-4 border-t border-pgray-100 pt-3">
+          <div className="mb-2 flex justify-end px-1"><ThemeToggle /></div>
+          <div className="flex items-center justify-between">
+            <div className="min-w-0 px-2">
+              <div className="truncate text-sm font-bold text-pgray-800">{user.name}</div>
+              <div className="text-xs text-pgray-400">{ROLE_LABELS[user.role]}</div>
+            </div>
+            <button onClick={logout} className="rounded-lg px-2 py-1 text-xs text-pgray-400 hover:bg-pgray-100">
+              로그아웃
+            </button>
           </div>
-          <button onClick={logout} className="rounded-lg px-2 py-1 text-xs text-pgray-400 hover:bg-pgray-100">
-            로그아웃
-          </button>
         </div>
       </aside>
 
@@ -85,7 +89,8 @@ export function Sidebar({ user, unreadCount }: { user: NavUser; unreadCount: num
       <header className="border-b border-pgray-100 bg-white md:hidden">
         <div className="flex items-center justify-between px-4 py-3">
           <Link href="/" className="font-display text-lg text-brand-600">POSTECH 언론홍보</Link>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
+            <ThemeToggle />
             <span className="text-xs text-pgray-500">{user.name}</span>
             <button onClick={logout} className="rounded-lg px-2 py-1 text-xs text-pgray-400 hover:bg-pgray-100">로그아웃</button>
           </div>

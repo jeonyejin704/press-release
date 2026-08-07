@@ -66,7 +66,7 @@ function makeLabel() {
         <text x={xIn} y={yIn} fill="#fff" textAnchor="middle" dominantBaseline="central" fontSize={11} fontWeight={700}>
           {(percent * 100).toFixed(0)}%
         </text>
-        <text x={xOut} y={yOut} fill="#2a2827" textAnchor={anchor} dominantBaseline="central" fontSize={11} fontWeight={700}>
+        <text x={xOut} y={yOut} fill="var(--chart-label)" textAnchor={anchor} dominantBaseline="central" fontSize={11} fontWeight={700}>
           {name}
         </text>
       </g>
