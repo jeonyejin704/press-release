@@ -2,34 +2,44 @@
 
 import { useEffect, useState } from "react";
 
-export function ThemeToggle() {
+// 라이트/다크가 나란히 보이는 세그먼트 스위치 — 현재 모드를 한눈에 알 수 있다.
+export function ThemeToggle({ className = "" }: { className?: string }) {
   const [dark, setDark] = useState(false);
 
   useEffect(() => {
     setDark(document.documentElement.classList.contains("dark"));
   }, []);
 
-  function toggle() {
-    const next = !dark;
-    setDark(next);
+  function apply(d: boolean) {
+    setDark(d);
     const root = document.documentElement;
-    if (next) root.classList.add("dark");
+    if (d) root.classList.add("dark");
     else root.classList.remove("dark");
     try {
-      localStorage.setItem("pf_theme", next ? "dark" : "light");
+      localStorage.setItem("pf_theme", d ? "dark" : "light");
     } catch {
       /* ignore */
     }
   }
 
   return (
-    <button
-      onClick={toggle}
-      title={dark ? "라이트 모드로" : "다크 모드로"}
-      className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium text-pgray-500 hover:bg-pgray-100"
-    >
-      <span>{dark ? "🌙" : "☀️"}</span>
-      {dark ? "다크" : "라이트"}
-    </button>
+    <div className={`inline-flex items-center rounded-full border border-pgray-200 bg-pgray-50 p-0.5 text-xs ${className}`}>
+      <button
+        onClick={() => apply(false)}
+        className={`flex flex-1 items-center justify-center gap-1 rounded-full px-2.5 py-1 transition ${
+          !dark ? "bg-white font-bold text-brand-600 shadow-sm" : "text-pgray-500"
+        }`}
+      >
+        ☀️ 라이트
+      </button>
+      <button
+        onClick={() => apply(true)}
+        className={`flex flex-1 items-center justify-center gap-1 rounded-full px-2.5 py-1 transition ${
+          dark ? "bg-brand-600 font-bold text-white" : "text-pgray-500"
+        }`}
+      >
+        🌙 다크
+      </button>
+    </div>
   );
 }
