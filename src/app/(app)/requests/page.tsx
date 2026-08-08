@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getCurrentUser, isManager } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { StatusBadge, Badge, Card, LinkButton, EmptyState } from "@/components/ui";
+import { Pagination } from "@/components/Pagination";
 import {
   REQUEST_TYPE_LABELS,
   REQUEST_TYPES,
@@ -28,11 +29,31 @@ export default async function RequestsPage({
   if (sp.department) where.department = sp.department;
   if (sp.q) where.title = { contains: sp.q };
 
+  // 페이지네이션
+  const PAGE_SIZE = 20;
+  const totalCount = await prisma.pressRequest.count({ where });
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  const page = Math.min(Math.max(1, parseInt(sp.page ?? "1") || 1), totalPages);
+
   const requests = await prisma.pressRequest.findMany({
     where,
     include: { applicant: { select: { name: true } } },
     orderBy: { updatedAt: "desc" },
+    skip: (page - 1) * PAGE_SIZE,
+    take: PAGE_SIZE,
   });
+
+  // 필터를 유지한 페이지 링크
+  const pageHref = (pg: number) => {
+    const qs = new URLSearchParams();
+    if (sp.q) qs.set("q", sp.q);
+    if (sp.type) qs.set("type", sp.type);
+    if (sp.status) qs.set("status", sp.status);
+    if (sp.department) qs.set("department", sp.department);
+    if (pg > 1) qs.set("page", String(pg));
+    const s = qs.toString();
+    return `/requests${s ? `?${s}` : ""}`;
+  };
 
   const departments = manager
     ? (await prisma.pressRequest.findMany({ select: { department: true }, distinct: ["department"] }))
@@ -48,8 +69,8 @@ export default async function RequestsPage({
             {manager ? "전체 신청 관리" : "내 홍보 신청"}
           </h1>
           <p className="text-sm text-pgray-500">
-            총 <span className="font-semibold text-brand-600">{requests.length}</span>건
-            {manager ? " (전체)" : ""}
+            총 <span className="font-semibold text-brand-600">{totalCount}</span>건
+            {manager ? " (전체)" : ""} · {page}/{totalPages} 페이지
           </p>
         </div>
         <LinkButton href="/requests/new">＋ 새 홍보 신청</LinkButton>
@@ -146,6 +167,8 @@ export default async function RequestsPage({
           </div>
         </Card>
       )}
+
+      <Pagination page={page} totalPages={totalPages} hrefFn={pageHref} />
     </div>
   );
 }

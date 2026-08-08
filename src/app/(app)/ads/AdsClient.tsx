@@ -36,6 +36,13 @@ export function AdsClient({ ads, summary, mediaYoY = [], years = [], focusMonth,
   const fiscalYearOf = (d: string) => { const x = new Date(d); return x.getMonth() >= 2 ? x.getFullYear() : x.getFullYear() - 1; };
   const thisYearCount = ads.filter((a) => fiscalYearOf(a.executedAt) === summary.thisYear).length;
 
+  // 집행 내역 페이지네이션
+  const AD_PAGE_SIZE = 12;
+  const [adPage, setAdPage] = useState(0);
+  const adTotalPages = Math.max(1, Math.ceil(ads.length / AD_PAGE_SIZE));
+  const adSafePage = Math.min(adPage, adTotalPages - 1);
+  const adSlice = ads.slice(adSafePage * AD_PAGE_SIZE, adSafePage * AD_PAGE_SIZE + AD_PAGE_SIZE);
+
   async function submit() {
     setError("");
     if (!form.title || !form.medium || !form.amount || !form.month) {
@@ -333,13 +340,13 @@ export function AdsClient({ ads, summary, mediaYoY = [], years = [], focusMonth,
         <Card className="p-0 lg:col-span-2">
           <div className="border-b border-pgray-100 px-5 py-3 text-base font-bold text-pgray-900">집행 내역</div>
           {ads.length === 0 ? <div className="p-6"><EmptyState title="집행 내역이 없습니다." /></div> : (
-            <div className="max-h-[30rem] overflow-auto">
+            <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="sticky top-0 bg-pgray-50 text-left text-xs uppercase text-pgray-500">
+                <thead className="bg-pgray-50 text-left text-xs uppercase text-pgray-500">
                   <tr><th className="px-4 py-2">집행월</th><th className="px-4 py-2">매체명</th><th className="px-4 py-2">광고 유형</th><th className="px-4 py-2 text-right">집행액</th><th className="px-4 py-2"></th></tr>
                 </thead>
                 <tbody className="divide-y divide-pgray-100">
-                  {ads.map((a) => (
+                  {adSlice.map((a) => (
                     <tr key={a.id} className="hover:bg-pgray-50">
                       <td className="whitespace-nowrap px-4 py-2 text-pgray-500">{new Date(a.executedAt).getFullYear()}.{String(new Date(a.executedAt).getMonth() + 1).padStart(2, "0")}</td>
                       <td className="px-4 py-2 text-pgray-800">{a.title}</td>
@@ -353,6 +360,15 @@ export function AdsClient({ ads, summary, mediaYoY = [], years = [], focusMonth,
                   ))}
                 </tbody>
               </table>
+              {adTotalPages > 1 && (
+                <div className="flex items-center justify-center gap-1 border-t border-pgray-100 py-3">
+                  <button disabled={adSafePage === 0} onClick={() => setAdPage(adSafePage - 1)}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg text-pgray-500 hover:bg-pgray-100 disabled:opacity-30">‹</button>
+                  <span className="px-2 text-sm text-pgray-500">{adSafePage + 1} / {adTotalPages}</span>
+                  <button disabled={adSafePage >= adTotalPages - 1} onClick={() => setAdPage(adSafePage + 1)}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg text-pgray-500 hover:bg-pgray-100 disabled:opacity-30">›</button>
+                </div>
+              )}
             </div>
           )}
         </Card>

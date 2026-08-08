@@ -4,6 +4,7 @@ import { getCurrentUser, isManager } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { Card, Badge, StatusBadge } from "@/components/ui";
 import { type RequestType } from "@/lib/enums";
+import { getHolidays } from "@/lib/holidays";
 
 export const dynamic = "force-dynamic";
 
@@ -114,6 +115,11 @@ export default async function SchedulePage({
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
   const isDone = makeIsDone(startOfToday);
 
+  // 공휴일(해당 연·월) + 요일 판별
+  const holidays = getHolidays(year);
+  const holidayOf = (d: number) => holidays[`${month + 1}-${d}`] ?? null;
+  const weekdayOf = (d: number) => new Date(year, month, d).getDay(); // 0=일,6=토
+
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
@@ -153,12 +159,22 @@ export default async function SchedulePage({
           {cells.map((d, i) => {
             const dayItems = d !== null ? byDay.get(d) ?? [] : [];
             const selected = d !== null && d === selectedDay;
+            const wd = d !== null ? weekdayOf(d) : -1;
+            const holiday = d !== null ? holidayOf(d) : null;
+            const isRest = wd === 0 || !!holiday; // 일요일·공휴일 = 빨강
+            const isSat = wd === 6;
+            // 배경: 공휴일/일요일 옅은 빨강, 토요일 옅은 파랑, 빈칸 회색
+            const cellBg = d === null ? "bg-pgray-50/40" : isRest ? "bg-brand-50/30" : isSat ? "bg-blue-50/40" : "";
+            const numColor = isToday(d as number)
+              ? "rounded-full bg-brand-600 px-1.5 py-0.5 font-bold text-white"
+              : isRest ? "font-semibold text-brand-600" : isSat ? "font-semibold text-blue-600" : "text-pgray-400";
             return (
-              <div key={i} className={`min-h-[108px] border-b border-r border-pgray-100 ${d === null ? "bg-pgray-50/40" : ""}`}>
+              <div key={i} className={`min-h-[108px] border-b border-r border-pgray-100 ${cellBg}`}>
                 {d !== null && (
                   <Link href={dayHref(d)} className={`block h-full p-1.5 transition hover:bg-brand-50/40 ${selected ? "bg-brand-50" : ""}`}>
-                    <div className="mb-1 text-right text-xs">
-                      <span className={isToday(d) ? "rounded-full bg-brand-600 px-1.5 py-0.5 font-bold text-white" : "text-pgray-400"}>{d}</span>
+                    <div className="mb-1 flex items-center justify-between text-xs">
+                      {holiday ? <span className="truncate text-[10px] font-semibold text-brand-600">{holiday}</span> : <span />}
+                      <span className={numColor}>{d}</span>
                     </div>
                     <div className="flex flex-col gap-1">
                       {dayItems.slice(0, 4).map((it) => {
