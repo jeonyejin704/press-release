@@ -46,8 +46,8 @@ export function Sidebar({ user, unreadCount }: { user: NavUser; unreadCount: num
     <>
       {/* ── Desktop: 좌측 사이드바 ── */}
       <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-pgray-100 bg-white px-3 py-5 md:flex">
-        <Link href="/" className="mb-3 px-2 font-display text-xl leading-tight text-brand-600">
-          POSTECH<br />언론홍보
+        <Link href="/" className="mb-3 whitespace-nowrap px-2 font-display text-lg text-brand-600">
+          POSTECH 언론홍보
         </Link>
         <div className="mb-4 px-1">
           <ThemeToggle className="w-full" />
