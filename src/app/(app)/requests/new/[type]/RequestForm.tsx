@@ -40,6 +40,18 @@ export function RequestForm({ type }: { type: RequestType }) {
   function removeFile(i: number) {
     setFiles((prev) => prev.filter((_, idx) => idx !== i));
   }
+  // JPG 전용 사진 첨부(연구진 사진·대표 이미지)
+  function isJpg(f: File) {
+    return /\.jpe?g$/i.test(f.name) || f.type === "image/jpeg";
+  }
+  function addPhoto(f: File, fileType: string) {
+    if (!isJpg(f)) {
+      setError("사진은 JPG(.jpg) 형식만 업로드할 수 있습니다.");
+      return;
+    }
+    setError("");
+    setFiles((prev) => [...prev, { file: f, fileType }]);
+  }
 
   async function save(submit: boolean) {
     setError("");
@@ -167,6 +179,31 @@ export function RequestForm({ type }: { type: RequestType }) {
         </Card>
       )}
 
+      {/* 사진 첨부 (JPG 전용) */}
+      <Card className="mt-3 p-5">
+        <div className="mb-1 text-base font-bold text-pgray-900">사진 첨부 <span className="text-sm font-normal text-brand-600">(JPG 전용)</span></div>
+        <p className="mb-3 text-sm text-pgray-500">
+          <b>연구진 사진</b>과 <b>대표 이미지</b>를 첨부해 주세요. <b>JPG(.jpg) 형식만</b> 업로드할 수 있으며,
+          인쇄·배포에 쓰이므로 <b>고해상도 원본</b>을 권장합니다. (최대 20MB)
+        </p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <PhotoUploader
+            label="연구진 사진"
+            hint="연구진 인물 사진 (JPG)"
+            files={files.filter((pf) => pf.fileType === "RESEARCHER_PHOTO")}
+            onPick={(f) => addPhoto(f, "RESEARCHER_PHOTO")}
+            onRemove={(file) => setFiles((prev) => prev.filter((pf) => pf.file !== file))}
+          />
+          <PhotoUploader
+            label="대표 이미지"
+            hint="연구 대표 이미지·도식 (JPG)"
+            files={files.filter((pf) => pf.fileType === "REPRESENTATIVE_IMAGE")}
+            onPick={(f) => addPhoto(f, "REPRESENTATIVE_IMAGE")}
+            onRemove={(file) => setFiles((prev) => prev.filter((pf) => pf.file !== file))}
+          />
+        </div>
+      </Card>
+
       {/* 파일 업로드 */}
       <Card className="mt-3 p-5">
         <div className="mb-1 text-base font-bold text-pgray-900">파일 업로드</div>
@@ -226,6 +263,52 @@ export function RequestForm({ type }: { type: RequestType }) {
           {saving ? "저장 중…" : "홍보 신청 제출"}
         </Button>
       </div>
+    </div>
+  );
+}
+
+function PhotoUploader({
+  label,
+  hint,
+  files,
+  onPick,
+  onRemove,
+}: {
+  label: string;
+  hint: string;
+  files: PickedFile[];
+  onPick: (f: File) => void;
+  onRemove: (f: File) => void;
+}) {
+  return (
+    <div className="rounded-xl border border-pgray-200 p-3">
+      <div className="mb-1 flex items-center justify-between">
+        <span className="text-sm font-semibold text-pgray-800">{label}</span>
+        <label className="inline-flex cursor-pointer items-center rounded-lg bg-brand-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-brand-700">
+          JPG 선택
+          <input
+            type="file"
+            accept=".jpg,.jpeg,image/jpeg"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) onPick(f);
+              e.target.value = "";
+            }}
+          />
+        </label>
+      </div>
+      <p className="text-xs text-pgray-400">{hint}</p>
+      {files.length > 0 && (
+        <ul className="mt-2 space-y-1">
+          {files.map((pf, i) => (
+            <li key={i} className="flex items-center justify-between rounded-lg bg-pgray-50 px-2.5 py-1.5 text-xs">
+              <span className="truncate text-pgray-700">🖼️ {pf.file.name}</span>
+              <button onClick={() => onRemove(pf.file)} className="shrink-0 text-brand-600 hover:underline">제거</button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

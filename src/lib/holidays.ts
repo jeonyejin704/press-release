@@ -1,6 +1,8 @@
-// 대한민국 공휴일. 양력 고정 공휴일은 매년 계산하고,
-// 음력 기반(설날·추석·부처님오신날) 및 대체공휴일은 연도별로 표를 둔다(2024~2030).
-// ※ 음력 명절은 연도별 실제 양력 날짜를 표기한 것으로, 확정 발표에 따라 보정이 필요할 수 있음.
+// 대한민국 공휴일.
+//  · 양력 고정 공휴일 → 매년 자동
+//  · 음력 명절(설날·추석·부처님오신날) → '당일' 양력 날짜만 표로 두고,
+//    연휴(±1일)와 대체공휴일은 코드가 규칙대로 계산한다.
+//  ※ 음력 당일 날짜는 발표 기준이며, 2031년 이후는 추정치가 섞여 있어 확정 시 보정이 필요할 수 있음.
 
 // 양력 고정 공휴일 (월-일)
 const FIXED: Record<string, string> = {
@@ -14,52 +16,81 @@ const FIXED: Record<string, string> = {
   "12-25": "크리스마스",
 };
 
-// 음력 기반 + 대체공휴일 (연도 → { "월-일": 이름 })
-const LUNAR_AND_SUBSTITUTE: Record<number, Record<string, string>> = {
-  2024: {
-    "2-9": "설날 연휴", "2-10": "설날", "2-11": "설날 연휴", "2-12": "대체공휴일",
-    "4-10": "국회의원선거",
-    "5-15": "부처님오신날",
-    "9-16": "추석 연휴", "9-17": "추석", "9-18": "추석 연휴",
-  },
-  2025: {
-    "1-27": "임시공휴일", "1-28": "설날 연휴", "1-29": "설날", "1-30": "설날 연휴",
-    "5-5": "어린이날·부처님오신날", "5-6": "대체공휴일",
-    "10-5": "추석 연휴", "10-6": "추석", "10-7": "추석 연휴", "10-8": "대체공휴일",
-  },
-  2026: {
-    "2-16": "설날 연휴", "2-17": "설날", "2-18": "설날 연휴",
-    "5-24": "부처님오신날", "5-25": "대체공휴일",
-    "9-24": "추석 연휴", "9-25": "추석", "9-26": "추석 연휴", "9-28": "대체공휴일",
-  },
-  2027: {
-    "2-6": "설날 연휴", "2-7": "설날", "2-8": "설날 연휴", "2-9": "대체공휴일",
-    "5-13": "부처님오신날",
-    "9-14": "추석 연휴", "9-15": "추석", "9-16": "추석 연휴",
-  },
-  2028: {
-    "1-26": "설날 연휴", "1-27": "설날", "1-28": "설날 연휴",
-    "5-2": "부처님오신날",
-    "10-2": "추석 연휴", "10-3": "추석", "10-4": "추석 연휴",
-  },
-  2029: {
-    "2-12": "설날 연휴", "2-13": "설날", "2-14": "설날 연휴",
-    "5-20": "부처님오신날", "5-21": "대체공휴일",
-    "9-21": "추석 연휴", "9-22": "추석", "9-23": "추석 연휴", "9-24": "대체공휴일",
-  },
-  2030: {
-    "2-2": "설날 연휴", "2-3": "설날", "2-4": "설날 연휴", "2-5": "대체공휴일",
-    "5-9": "부처님오신날",
-    "9-11": "추석 연휴", "9-12": "추석", "9-13": "추석 연휴",
-  },
+// 음력 명절 '당일' 양력 날짜 [월, 일]
+type Main = { seollal: [number, number]; chuseok: [number, number]; buddha: [number, number] };
+const LUNAR_MAIN: Record<number, Main> = {
+  2024: { seollal: [2, 10], chuseok: [9, 17], buddha: [5, 15] },
+  2025: { seollal: [1, 29], chuseok: [10, 6], buddha: [5, 5] },
+  2026: { seollal: [2, 17], chuseok: [9, 25], buddha: [5, 24] },
+  2027: { seollal: [2, 6], chuseok: [9, 15], buddha: [5, 13] },
+  2028: { seollal: [1, 26], chuseok: [10, 3], buddha: [5, 2] },
+  2029: { seollal: [2, 13], chuseok: [9, 22], buddha: [5, 20] },
+  2030: { seollal: [2, 3], chuseok: [9, 12], buddha: [5, 9] },
+  2031: { seollal: [1, 23], chuseok: [10, 1], buddha: [5, 28] },
+  2032: { seollal: [2, 11], chuseok: [9, 19], buddha: [5, 16] },
+  2033: { seollal: [1, 31], chuseok: [9, 8], buddha: [5, 6] },
+  2034: { seollal: [2, 19], chuseok: [9, 27], buddha: [5, 25] },
+  2035: { seollal: [2, 8], chuseok: [9, 16], buddha: [5, 15] },
 };
+
+// 알고리즘으로 못 잡는 특례(임시공휴일·선거일·중복 대체 등)
+const EXTRA: Record<number, Record<string, string>> = {
+  2024: { "4-10": "국회의원선거" },
+  2025: { "1-27": "임시공휴일", "5-6": "대체공휴일" },
+};
+
+// 토/일과 겹치면 대체공휴일이 지정되는 공휴일
+const SUBSTITUTABLE = new Set([
+  "삼일절", "어린이날", "부처님오신날", "어린이날·부처님오신날",
+  "광복절", "개천절", "한글날", "크리스마스",
+  "설날", "설날 연휴", "추석", "추석 연휴",
+]);
 
 // 해당 연도의 공휴일 맵: "월-일" → 이름
 export function getHolidays(year: number): Record<string, string> {
-  return { ...FIXED, ...(LUNAR_AND_SUBSTITUTE[year] ?? {}) };
+  const map: Record<string, string> = { ...FIXED };
+  const key = (d: Date) => `${d.getMonth() + 1}-${d.getDate()}`;
+  const addDate = (d: Date, name: string) => { if (d.getFullYear() === year) map[key(d)] = name; };
+  const dayOffset = (d: Date, n: number) => new Date(d.getTime() + n * 86400000);
+
+  const L = LUNAR_MAIN[year];
+  if (L) {
+    const seol = new Date(year, L.seollal[0] - 1, L.seollal[1]);
+    addDate(dayOffset(seol, -1), "설날 연휴");
+    addDate(seol, "설날");
+    addDate(dayOffset(seol, 1), "설날 연휴");
+
+    const chu = new Date(year, L.chuseok[0] - 1, L.chuseok[1]);
+    addDate(dayOffset(chu, -1), "추석 연휴");
+    addDate(chu, "추석");
+    addDate(dayOffset(chu, 1), "추석 연휴");
+
+    const budK = `${L.buddha[0]}-${L.buddha[1]}`;
+    map[budK] = map[budK] === "어린이날" ? "어린이날·부처님오신날" : "부처님오신날";
+  }
+
+  // 대체공휴일: 대상 공휴일이 토/일이면 다음 평일(공휴일 아닌)에 대체 지정
+  const inOrder = Object.keys(map)
+    .map((k) => { const [m, d] = k.split("-").map(Number); return { m, d }; })
+    .sort((a, b) => a.m - b.m || a.d - b.d);
+  for (const { m, d } of inOrder) {
+    const name = map[`${m}-${d}`];
+    if (!SUBSTITUTABLE.has(name)) continue;
+    const wd = new Date(year, m - 1, d).getDay();
+    if (wd !== 0 && wd !== 6) continue; // 평일이면 대체 없음
+    let n = new Date(year, m - 1, d + 1);
+    while (n.getFullYear() === year) {
+      const nwd = n.getDay();
+      if (nwd !== 0 && nwd !== 6 && !map[key(n)]) { map[key(n)] = "대체공휴일"; break; }
+      n = dayOffset(n, 1);
+    }
+  }
+
+  // 특례 덮어쓰기(임시공휴일 등)
+  Object.assign(map, EXTRA[year] ?? {});
+  return map;
 }
 
 export function holidayName(year: number, month1to12: number, day: number): string | null {
-  const map = getHolidays(year);
-  return map[`${month1to12}-${day}`] ?? null;
+  return getHolidays(year)[`${month1to12}-${day}`] ?? null;
 }

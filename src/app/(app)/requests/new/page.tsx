@@ -21,7 +21,6 @@ export default function NewRequestPage() {
       {/* 공통 안내 배너 */}
       <Card className="mt-4 border-accent-200 bg-accent-50 p-4">
         <p className="text-sm leading-relaxed text-pgray-700">
-          <span className="font-bold text-brand-700">보도자료 초안은 신청자가 직접 작성해 업로드</span>합니다.
           각 유형 화면에서 <span className="font-semibold">‘보도자료 초안 양식’</span>을 내려받아 작성하신 뒤,
           파일로 업로드해 주세요. 대외협력팀이 이를 검토·보완하여 최종본을 완성합니다.
           <br />
