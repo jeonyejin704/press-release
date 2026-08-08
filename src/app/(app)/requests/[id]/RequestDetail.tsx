@@ -329,10 +329,10 @@ function InfoTab({ data }: { data: Data }) {
         <dl className="space-y-2 text-sm">
           <Row label="신청자" value={`${data.applicant.name} (${data.applicant.email})`} />
           <Row label="소속" value={data.department ?? "-"} />
+          <Row label="신청일시" value={data.submittedAt ? fmtDateTime(data.submittedAt) : "임시저장 (미제출)"} />
           <Row label="연락처" value={data.contactPhone ?? "-"} />
           <Row label="홍보 희망일" value={fmt(data.desiredPublishDate)} />
           <Row label="예상 배포일" value={fmt(data.expectedPublishDate)} />
-          <Row label="대외 공개" value={data.publicDisclosureAllowed ? "가능" : "불가"} />
           <Row label="참고 메모" value={data.note ?? "-"} />
         </dl>
       </Card>
@@ -590,4 +590,13 @@ function AuditTab({ data }: { data: Data }) {
 
 function fmt(d: string | null) {
   return d ? new Date(d).toLocaleDateString("ko-KR") : "-";
+}
+
+// 날짜 + 시간 (예: 2026. 8. 8. 14:32)
+function fmtDateTime(d: string | null) {
+  if (!d) return "-";
+  return new Date(d).toLocaleString("ko-KR", {
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", hour12: false,
+  });
 }

@@ -83,6 +83,7 @@ export default async function RequestDetailPage({
         desiredPublishDate: request.desiredPublishDate,
         expectedPublishDate: request.expectedPublishDate,
         submittedAt: request.submittedAt,
+        createdAt: request.createdAt,
         applicant: request.applicant,
         releases: request.releases,
         attachments: request.attachments,

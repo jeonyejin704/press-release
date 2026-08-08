@@ -159,7 +159,7 @@ export default async function RequestsPage({
                     <td className="whitespace-nowrap px-4 py-3 text-slate-500">
                       {r.expectedPublishDate ? fmt(r.expectedPublishDate) : "-"}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-slate-400">{fmt(r.updatedAt)}</td>
+                    <td className="whitespace-nowrap px-4 py-3 text-slate-400">{fmtDT(r.updatedAt)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -178,5 +178,13 @@ function fmt(d: Date) {
     year: "2-digit",
     month: "2-digit",
     day: "2-digit",
+  });
+}
+
+// 날짜 + 시간 (수정일용)
+function fmtDT(d: Date) {
+  return new Date(d).toLocaleString("ko-KR", {
+    year: "2-digit", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", hour12: false,
   });
 }
