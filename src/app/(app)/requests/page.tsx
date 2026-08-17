@@ -57,6 +57,18 @@ export default async function RequestsPage({
     return `/requests${s ? `?${s}` : ""}`;
   };
 
+  // 필터를 유지한 엑셀 내려받기 링크
+  const exportHref = (() => {
+    const qs = new URLSearchParams();
+    if (sp.q) qs.set("q", sp.q);
+    if (sp.type) qs.set("type", sp.type);
+    if (sp.status) qs.set("status", sp.status);
+    if (sp.department) qs.set("department", sp.department);
+    if (sp.applicant) qs.set("applicant", sp.applicant);
+    const s = qs.toString();
+    return `/api/press-requests/export${s ? `?${s}` : ""}`;
+  })();
+
   const departments = manager
     ? (await prisma.pressRequest.findMany({ select: { department: true }, distinct: ["department"] }))
         .map((r) => r.department)
@@ -75,7 +87,17 @@ export default async function RequestsPage({
             {manager ? " (전체)" : ""} · {page}/{totalPages} 페이지
           </p>
         </div>
-        <LinkButton href="/requests/new">＋ 새 홍보 신청</LinkButton>
+        <div className="flex items-center gap-2">
+          {manager && (
+            <a
+              href={exportHref}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-100"
+            >
+              ⬇ 엑셀 내려받기
+            </a>
+          )}
+          <LinkButton href="/requests/new">＋ 새 홍보 신청</LinkButton>
+        </div>
       </div>
 
       {/* Filters */}

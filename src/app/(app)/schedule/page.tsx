@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { Card, Badge, StatusBadge } from "@/components/ui";
 import { type RequestType } from "@/lib/enums";
 import { getHolidays } from "@/lib/holidays";
+import { ScheduleTable } from "./ScheduleTable";
 
 export const dynamic = "force-dynamic";
 
@@ -58,6 +59,24 @@ function personOf(it: any): string {
   return !name || name === "미상" ? "전예진" : name;
 }
 
+// ── 다음 영업일(주말·공휴일 제외) 계산 헬퍼 ──────────────────────────
+function isBusinessDay(d: Date): boolean {
+  const wd = d.getDay();
+  if (wd === 0 || wd === 6) return false; // 주말
+  const holidays = getHolidays(d.getFullYear());
+  return !holidays[`${d.getMonth() + 1}-${d.getDate()}`];
+}
+function nextBusinessDay(from: Date): Date {
+  const d = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+  do {
+    d.setDate(d.getDate() + 1);
+  } while (!isBusinessDay(d));
+  return d;
+}
+function ymd(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 export default async function SchedulePage({
   searchParams,
 }: {
@@ -69,6 +88,82 @@ export default async function SchedulePage({
 
   const sp = await searchParams;
   const now = new Date();
+  const view = sp.view === "calendar" ? "calendar" : "table";
+
+  // ── 표형/달력형 토글 헤더(공통) ──────────────────────────────────
+  const toggle = (
+    <div className="inline-flex overflow-hidden rounded-lg border border-pgray-200">
+      <Link
+        href="/schedule?view=table"
+        className={`px-3 py-1.5 text-sm font-medium ${view === "table" ? "bg-brand-600 text-white" : "bg-white text-pgray-500 hover:bg-pgray-50"}`}
+      >
+        표형
+      </Link>
+      <Link
+        href="/schedule?view=calendar"
+        className={`px-3 py-1.5 text-sm font-medium ${view === "calendar" ? "bg-brand-600 text-white" : "bg-white text-pgray-500 hover:bg-pgray-50"}`}
+      >
+        달력형
+      </Link>
+    </div>
+  );
+
+  // ══════════════════════════ 표형 (기본) ══════════════════════════
+  if (view === "table") {
+    const reqs = await prisma.pressRequest.findMany({
+      where: { status: { not: "DRAFT" } },
+      select: {
+        id: true, title: true, type: true, createdAt: true, expectedPublishDate: true,
+        applicant: { select: { name: true } },
+        research: { select: { correspondingAuthorName: true, paperTitleKo: true, journalName: true } },
+      },
+      orderBy: { createdAt: "asc" },
+    });
+
+    // 접수 순서대로 자동 배포일 제안: 이미 배포일이 있으면 그 날짜, 없으면 다음 영업일을 순차 배정.
+    // 기준 커서 = max(오늘, 기존에 배정된 가장 늦은 배포일) 이후 영업일부터.
+    let cursor = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    for (const r of reqs) {
+      if (r.expectedPublishDate) {
+        const ep = new Date(r.expectedPublishDate);
+        if (ep.getTime() > cursor.getTime()) cursor = new Date(ep.getFullYear(), ep.getMonth(), ep.getDate());
+      }
+    }
+
+    const rows = reqs.map((r) => {
+      let suggested: string;
+      if (r.expectedPublishDate) {
+        suggested = ymd(new Date(r.expectedPublishDate));
+      } else {
+        cursor = nextBusinessDay(cursor);
+        suggested = ymd(cursor);
+      }
+      return {
+        id: r.id,
+        createdAt: new Date(r.createdAt).toISOString(),
+        corr: r.research?.correspondingAuthorName?.trim() || r.applicant?.name || "-",
+        paper: r.research?.paperTitleKo?.trim() || r.title,
+        journal: r.research?.journalName?.trim() || "-",
+        expectedPublishDate: r.expectedPublishDate ? new Date(r.expectedPublishDate).toISOString() : null,
+        suggested,
+      };
+    });
+
+    return (
+      <div>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h1 className="font-display text-2xl text-pgray-900">배포일정</h1>
+            <p className="text-sm text-pgray-500">신청 접수 순서대로 나열됩니다. 예상 배포일은 직접 입력·수정할 수 있어요.</p>
+          </div>
+          {toggle}
+        </div>
+        <ScheduleTable rows={rows} />
+      </div>
+    );
+  }
+
+  // ══════════════════════════ 달력형 (출력 느낌) ══════════════════════════
   const year = sp.y ? parseInt(sp.y) : now.getFullYear();
   const month = sp.m ? parseInt(sp.m) - 1 : now.getMonth();
   const selectedDay = sp.d ? parseInt(sp.d) : null;
@@ -106,8 +201,8 @@ export default async function SchedulePage({
 
   const prev = new Date(year, month - 1, 1);
   const next = new Date(year, month + 1, 1);
-  const navHref = (dt: Date) => `/schedule?y=${dt.getFullYear()}&m=${dt.getMonth() + 1}`;
-  const dayHref = (d: number) => `/schedule?y=${year}&m=${month + 1}&d=${d}`;
+  const navHref = (dt: Date) => `/schedule?view=calendar&y=${dt.getFullYear()}&m=${dt.getMonth() + 1}`;
+  const dayHref = (d: number) => `/schedule?view=calendar&y=${year}&m=${month + 1}&d=${d}`;
   const isToday = (d: number) =>
     year === now.getFullYear() && month === now.getMonth() && d === now.getDate();
 
@@ -127,11 +222,12 @@ export default async function SchedulePage({
           <h1 className="font-display text-2xl text-pgray-900">배포일정</h1>
           <p className="text-sm text-pgray-500">예상 배포일 기준 보도자료 달력입니다. 날짜를 클릭하면 아래에 상세가 표시됩니다.</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {toggle}
           <Link href={navHref(prev)} className="rounded-lg border border-pgray-200 px-3 py-1.5 text-sm hover:bg-pgray-50">‹ 이전</Link>
           <span className="min-w-[7rem] text-center font-display text-lg text-brand-700">{year}년 {month + 1}월</span>
           <Link href={navHref(next)} className="rounded-lg border border-pgray-200 px-3 py-1.5 text-sm hover:bg-pgray-50">다음 ›</Link>
-          <Link href="/schedule" className="ml-1 rounded-lg px-3 py-1.5 text-sm text-pgray-500 hover:bg-pgray-100">오늘</Link>
+          <Link href="/schedule?view=calendar" className="ml-1 rounded-lg px-3 py-1.5 text-sm text-pgray-500 hover:bg-pgray-100">오늘</Link>
         </div>
       </div>
 
