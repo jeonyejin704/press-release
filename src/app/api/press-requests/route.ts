@@ -38,16 +38,17 @@ export async function POST(req: Request) {
   const input = parsed.data;
   const type = input.type as RequestType;
 
-  // 신청자 정보(이름·이메일)로 신청자 계정을 찾거나 생성해 연결
-  const email = input.applicantEmail.trim().toLowerCase();
-  const applicant = await prisma.user.upsert({
-    where: { email },
-    create: { email, name: input.applicantName.trim(), department: input.department ?? null, role: "APPLICANT" },
-    update: { name: input.applicantName.trim(), ...(input.department ? { department: input.department } : {}) },
-  });
+  // 신청자 = 로그인 계정. 폼에 입력한 신청자 이름/학과로 계정 정보를 최신화(정보 수집).
+  const applicantName = (input.applicantName ?? "").trim() || user.name;
+  if (applicantName !== user.name || (input.department && input.department !== user.department)) {
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { name: applicantName, ...(input.department ? { department: input.department } : {}) },
+    }).catch(() => null);
+  }
 
   // 제목은 신청자가 입력하지 않으므로 자동 생성
-  const title = (input.title && input.title.trim()) || `[${REQUEST_TYPE_LABELS[type]}] ${input.applicantName.trim()}`;
+  const title = (input.title && input.title.trim()) || `[${REQUEST_TYPE_LABELS[type]}] ${applicantName}`;
 
   const detailData = buildDetailData(type, input.detail ?? {});
   const relation = DETAIL_RELATION[type];
@@ -57,8 +58,8 @@ export async function POST(req: Request) {
       type,
       status: input.submit ? "SUBMITTED" : "DRAFT",
       title,
-      applicantId: applicant.id,
-      department: input.department ?? applicant.department,
+      applicantId: user.id,
+      department: input.department ?? user.department,
       contactPhone: input.contactPhone,
       desiredPublishDate: input.desiredPublishDate,
       isUrgent: input.isUrgent,
@@ -84,7 +85,7 @@ export async function POST(req: Request) {
   }
 
   await audit({
-    userId: applicant.id,
+    userId: user.id,
     pressRequestId: created.id,
     action: input.submit ? "REQUEST_SUBMITTED" : "REQUEST_CREATED",
     afterValue: created.status,
@@ -103,7 +104,7 @@ export async function POST(req: Request) {
           pressRequestId: created.id,
           type: "SUBMITTED",
           title: "새 홍보 신청",
-          message: `${input.applicantName}님이 "${created.title}" 홍보를 신청했습니다.`,
+          message: `${applicantName}님이 "${created.title}" 홍보를 신청했습니다.`,
         }),
       ),
     );

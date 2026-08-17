@@ -27,6 +27,7 @@ export default async function RequestsPage({
   if (sp.type) where.type = sp.type;
   if (sp.status) where.status = sp.status;
   if (sp.department) where.department = sp.department;
+  if (sp.applicant) where.applicantId = sp.applicant;
   if (sp.q) where.title = { contains: sp.q };
 
   // 페이지네이션
@@ -50,6 +51,7 @@ export default async function RequestsPage({
     if (sp.type) qs.set("type", sp.type);
     if (sp.status) qs.set("status", sp.status);
     if (sp.department) qs.set("department", sp.department);
+    if (sp.applicant) qs.set("applicant", sp.applicant);
     if (pg > 1) qs.set("page", String(pg));
     const s = qs.toString();
     return `/requests${s ? `?${s}` : ""}`;

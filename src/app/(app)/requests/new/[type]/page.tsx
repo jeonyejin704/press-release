@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { RequestForm } from "./RequestForm";
 import { isRequestType, type RequestType } from "@/lib/enums";
+import { getCurrentUser } from "@/lib/session";
 
 export default async function NewTypedRequestPage({
   params,
@@ -10,5 +11,11 @@ export default async function NewTypedRequestPage({
   const { type } = await params;
   const upper = type.toUpperCase();
   if (!isRequestType(upper)) notFound();
-  return <RequestForm type={upper as RequestType} />;
+  const user = await getCurrentUser();
+  return (
+    <RequestForm
+      type={upper as RequestType}
+      me={{ name: user?.name ?? "", email: user?.email ?? "", department: user?.department ?? "" }}
+    />
+  );
 }

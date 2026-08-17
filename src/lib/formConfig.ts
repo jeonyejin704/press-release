@@ -8,7 +8,11 @@ export type FieldDef = {
   hint?: string;
 };
 
-const CONTACT = "문의사항이 있을 경우 대외협력팀으로 연락 부탁드립니다. ☎ 054-279-2416";
+const CONTACT = "문의사항이 있을 경우 대외협력팀으로 연락 부탁드립니다.(054-279-2416)";
+// 연구성과 전용 안내(접수 순서·시간 간격 양해)
+const RESEARCH_NOTICE =
+  "우리 대학은 Nature, Science, Cell 본지 게재 논문을 제외한 경우, 플랫폼 접수 순서에 따라 홍보를 진행하고 있습니다. " +
+  "이에 따라 신청과 자료 배포 사이에 다소 시간 간격이 발생하고 있는 점 양해 부탁드립니다.";
 
 // 유형별 '보도자료 초안 양식' 다운로드 파일 (public/templates 에 심어 둠).
 export const TEMPLATE_FILES: Record<RequestType, string> = {
@@ -30,8 +34,9 @@ export const REQUEST_GUIDE: Record<RequestType, string> = {
     "연구 배경, 연구 내용, 성과의 의미, 기대효과, 활용 분야, 쉽게 풀어 쓴 설명 등 상세한 내용은 " +
     "보도자료 초안 샘플을 내려받아 작성하신 뒤 업로드해 주세요. " +
     "대외협력팀이 업로드된 초안을 검토·보완할 예정입니다. " +
-    "연구진 사진과 대표 이미지도 함께 첨부해 주세요. " +
-    CONTACT,
+    "연구진 사진과 대표 이미지도 함께 첨부해 주세요." +
+    "\n\n" + RESEARCH_NOTICE +
+    "\n\n" + CONTACT,
   AWARD:
     "수상성과 홍보를 신청합니다. 수상명, 주최(시상)기관, 수상 내역 등 기본 정보를 입력해 주세요. " +
     "자세한 수상 배경·의미는 '보도자료 초안 양식'을 내려받아 작성 후 파일로 업로드해 주시면 됩니다. " +

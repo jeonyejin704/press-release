@@ -10,8 +10,8 @@ const optionalDate = z
 export const commonRequestSchema = z.object({
   type: z.enum(REQUEST_TYPES),
   title: z.string().optional().default(""),
-  applicantName: z.string().min(1, "신청자 이름을 입력하세요."),
-  applicantEmail: z.string().email("올바른 이메일 주소를 입력하세요."),
+  applicantName: z.string().optional().default(""),
+  applicantEmail: z.string().optional().nullable(),
   department: z.string().optional().nullable(),
   contactPhone: z.string().optional().nullable(),
   desiredPublishDate: optionalDate,

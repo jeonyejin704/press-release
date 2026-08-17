@@ -17,6 +17,7 @@ export function Sidebar({ user, unreadCount }: { user: NavUser; unreadCount: num
     ? [
         { href: "/dashboard", label: "대시보드", icon: "📊" },
         { href: "/requests", label: "신청 관리", icon: "📋" },
+        { href: "/applicants", label: "신청자", icon: "👤" },
         { href: "/schedule", label: "배포일정", icon: "📅" },
         { href: "/ads", label: "광고비 집행", icon: "💰" },
         { href: "/news", label: "뉴스 모니터링", icon: "📰" },
@@ -24,7 +25,9 @@ export function Sidebar({ user, unreadCount }: { user: NavUser; unreadCount: num
         { href: "/notifications", label: "알림", icon: "🔔" },
       ]
     : [
+        { href: "/requests", label: "내 신청", icon: "📋" },
         { href: "/requests/new", label: "새 홍보 신청", icon: "➕" },
+        { href: "/notifications", label: "알림", icon: "🔔" },
       ];
   if (user.role === "ADMIN") links.push({ href: "/admin", label: "설정", icon: "⚙️" });
 
