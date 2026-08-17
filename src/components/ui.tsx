@@ -7,10 +7,12 @@ import {
   STATUS_PHASE_COLORS,
   type RequestStatus,
 } from "@/lib/enums";
+import { t, type Lang } from "@/lib/i18n";
 
 // 기본은 4단계 묶음 라벨(접수/검토·작성 중/배포 예정/배포 완료 등)을 보여준다.
 // detailed=true 이면 14개 세부 상태 라벨을 그대로 보여준다(상세 페이지용).
-export function StatusBadge({ status, detailed = false }: { status: string; detailed?: boolean }) {
+// lang이 주어지면 4단계 라벨을 해당 언어로 표시한다(기본 한국어).
+export function StatusBadge({ status, detailed = false, lang = "ko" }: { status: string; detailed?: boolean; lang?: Lang }) {
   const s = status as RequestStatus;
   if (detailed) {
     const color = REQUEST_STATUS_COLORS[s] ?? "bg-gray-100 text-gray-700";
@@ -23,7 +25,7 @@ export function StatusBadge({ status, detailed = false }: { status: string; deta
   }
   const phase = STATUS_TO_PHASE[s] ?? "DRAFT";
   const color = STATUS_PHASE_COLORS[phase] ?? "bg-gray-100 text-gray-700";
-  const label = STATUS_PHASE_LABELS[phase] ?? status;
+  const label = lang === "en" ? t("en", `phase.${phase}`) : STATUS_PHASE_LABELS[phase] ?? status;
   return (
     <span
       title={REQUEST_STATUS_LABELS[s] ?? status}

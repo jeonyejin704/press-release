@@ -7,11 +7,12 @@ import {
   REQUEST_TYPE_LABELS,
   REQUEST_TYPES,
   STATUS_PHASE_ORDER,
-  STATUS_PHASE_LABELS,
   PHASE_TO_STATUSES,
   type RequestType,
   type StatusPhase,
 } from "@/lib/enums";
+import { getLang } from "@/lib/i18n-server";
+import { makeT } from "@/lib/i18n";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,8 @@ export default async function RequestsPage({
   const user = (await getCurrentUser())!;
   const manager = isManager(user);
   const sp = await searchParams;
+  const lang = await getLang();
+  const tr = makeT(lang);
 
   const where: Record<string, unknown> = {};
   if (!manager) where.applicantId = user.id;
@@ -86,11 +89,11 @@ export default async function RequestsPage({
       <div className="mb-5 flex items-center justify-between">
         <div>
           <h1 className="font-display text-2xl text-pgray-900">
-            {manager ? "전체 신청 관리" : "내 홍보 신청"}
+            {manager ? tr("req.title.manager") : tr("req.title.applicant")}
           </h1>
           <p className="text-sm text-pgray-500">
-            총 <span className="font-semibold text-brand-600">{totalCount}</span>건
-            {manager ? " (전체)" : ""} · {page}/{totalPages} 페이지
+            {tr("req.total.prefix")} <span className="font-semibold text-brand-600">{totalCount}</span>
+            {tr("req.total.suffix")} · {page}/{totalPages}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -99,10 +102,10 @@ export default async function RequestsPage({
               href={exportHref}
               className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-100"
             >
-              ⬇ 엑셀 내려받기
+              {tr("req.export")}
             </a>
           )}
-          <LinkButton href="/requests/new">＋ 새 홍보 신청</LinkButton>
+          <LinkButton href="/requests/new">{tr("req.new")}</LinkButton>
         </div>
       </div>
 
@@ -112,11 +115,11 @@ export default async function RequestsPage({
           <input
             name="q"
             defaultValue={sp.q}
-            placeholder="제목 검색"
+            placeholder={tr("req.search")}
             className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm"
           />
           <select name="type" defaultValue={sp.type ?? ""} className="rounded-lg border border-slate-300 px-2 py-1.5 text-sm">
-            <option value="">유형 전체</option>
+            <option value="">{tr("req.filter.type")}</option>
             {REQUEST_TYPES.map((t) => (
               <option key={t} value={t}>
                 {REQUEST_TYPE_LABELS[t]}
@@ -124,16 +127,16 @@ export default async function RequestsPage({
             ))}
           </select>
           <select name="phase" defaultValue={sp.phase ?? ""} className="rounded-lg border border-slate-300 px-2 py-1.5 text-sm">
-            <option value="">상태 전체</option>
+            <option value="">{tr("req.filter.status")}</option>
             {STATUS_PHASE_ORDER.map((p) => (
               <option key={p} value={p}>
-                {STATUS_PHASE_LABELS[p]}
+                {tr(`phase.${p}`)}
               </option>
             ))}
           </select>
           {manager && departments.length > 0 && (
             <select name="department" defaultValue={sp.department ?? ""} className="rounded-lg border border-slate-300 px-2 py-1.5 text-sm">
-              <option value="">학과 전체</option>
+              <option value="">{tr("req.filter.dept")}</option>
               {departments.map((d) => (
                 <option key={d} value={d!}>
                   {d}
@@ -142,29 +145,29 @@ export default async function RequestsPage({
             </select>
           )}
           <button className="rounded-lg bg-brand-600 px-3 py-1.5 text-sm font-medium text-white">
-            적용
+            {tr("req.apply")}
           </button>
           <Link href="/requests" className="rounded-lg px-3 py-1.5 text-sm text-slate-500 hover:bg-slate-100">
-            초기화
+            {tr("req.reset")}
           </Link>
         </form>
       </Card>
 
       {requests.length === 0 ? (
-        <EmptyState title="신청 내역이 없습니다." hint="새 홍보 신청을 만들어 보세요." />
+        <EmptyState title={tr("req.empty")} hint={tr("req.empty.hint")} />
       ) : (
         <Card className="overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
                 <tr>
-                  <th className="px-4 py-2.5">제목</th>
-                  <th className="whitespace-nowrap px-4 py-2.5">유형</th>
-                  {manager && <th className="whitespace-nowrap px-4 py-2.5">학과</th>}
-                  {manager && <th className="whitespace-nowrap px-4 py-2.5">신청자</th>}
-                  <th className="whitespace-nowrap px-4 py-2.5">상태</th>
-                  <th className="whitespace-nowrap px-4 py-2.5">예상 배포일</th>
-                  <th className="whitespace-nowrap px-4 py-2.5">수정일</th>
+                  <th className="px-4 py-2.5">{tr("req.col.title")}</th>
+                  <th className="whitespace-nowrap px-4 py-2.5">{tr("req.col.type")}</th>
+                  {manager && <th className="whitespace-nowrap px-4 py-2.5">{tr("req.col.dept")}</th>}
+                  {manager && <th className="whitespace-nowrap px-4 py-2.5">{tr("req.col.applicant")}</th>}
+                  <th className="whitespace-nowrap px-4 py-2.5">{tr("req.col.status")}</th>
+                  <th className="whitespace-nowrap px-4 py-2.5">{tr("req.col.publish")}</th>
+                  <th className="whitespace-nowrap px-4 py-2.5">{tr("req.col.updated")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -184,7 +187,7 @@ export default async function RequestsPage({
                     {manager && <td className="whitespace-nowrap px-4 py-3 text-slate-600">{r.department ?? "-"}</td>}
                     {manager && <td className="whitespace-nowrap px-4 py-3 text-slate-600">{r.applicant.name}</td>}
                     <td className="whitespace-nowrap px-4 py-3">
-                      <StatusBadge status={r.status} />
+                      <StatusBadge status={r.status} lang={lang} />
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-slate-500">
                       {r.expectedPublishDate ? fmt(r.expectedPublishDate) : "-"}
