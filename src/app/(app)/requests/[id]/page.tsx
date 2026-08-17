@@ -2,8 +2,9 @@ import { notFound, redirect } from "next/navigation";
 import { getCurrentUser, isManager } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { detectMissingMaterials } from "@/lib/checklist";
-import { DETAIL_FORM } from "@/lib/formConfig";
+import { localizeFields } from "@/lib/formConfig";
 import type { RequestType } from "@/lib/enums";
+import { getLang } from "@/lib/i18n-server";
 import { RequestDetail } from "./RequestDetail";
 
 export const dynamic = "force-dynamic";
@@ -16,6 +17,7 @@ export default async function RequestDetailPage({
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   const { id } = await params;
+  const lang = await getLang();
 
   const request = await prisma.pressRequest.findUnique({
     where: { id },
@@ -58,9 +60,9 @@ export default async function RequestDetailPage({
     | Record<string, unknown>
     | null;
 
-  const detailFields = (DETAIL_FORM[type] ?? []).map((f) => ({
+  const detailFields = localizeFields(type, lang).map((f) => ({
     label: f.label,
-    value: detailRow ? formatValue(detailRow[f.name]) : "",
+    value: detailRow ? formatValue(detailRow[f.name], lang) : "",
   }));
 
   const presentAttachmentTypes = request.attachments.map((a) => a.fileType);
@@ -70,6 +72,7 @@ export default async function RequestDetailPage({
     <RequestDetail
       isManager={manager}
       currentUserId={user.id}
+      lang={lang}
       data={JSON.parse(JSON.stringify({
         id: request.id,
         type: request.type,
@@ -97,11 +100,12 @@ export default async function RequestDetailPage({
   );
 }
 
-function formatValue(v: unknown): string {
+function formatValue(v: unknown, lang: "ko" | "en" = "ko"): string {
+  const locale = lang === "en" ? "en-US" : "ko-KR";
   if (v === null || v === undefined) return "";
-  if (v instanceof Date) return new Date(v).toLocaleDateString("ko-KR");
+  if (v instanceof Date) return new Date(v).toLocaleDateString(locale);
   if (typeof v === "string" && /^\d{4}-\d{2}-\d{2}T/.test(v)) {
-    return new Date(v).toLocaleDateString("ko-KR");
+    return new Date(v).toLocaleDateString(locale);
   }
   return String(v);
 }

@@ -3,11 +3,14 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Card, EmptyState } from "@/components/ui";
+import { makeT, type Lang } from "@/lib/i18n";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-export function NotificationsClient({ notifications }: { notifications: any[] }) {
+export function NotificationsClient({ notifications, lang = "ko" }: { notifications: any[]; lang?: Lang }) {
   const router = useRouter();
+  const tr = makeT(lang);
+  const locale = lang === "en" ? "en-US" : "ko-KR";
 
   async function markRead(id: string, pressRequestId: string | null) {
     await fetch(`/api/notifications/${id}/read`, { method: "PATCH" });
@@ -17,9 +20,9 @@ export function NotificationsClient({ notifications }: { notifications: any[] })
 
   return (
     <div>
-      <h1 className="mb-4 text-xl font-bold text-slate-800">알림</h1>
+      <h1 className="mb-4 text-xl font-bold text-slate-800">{tr("notif.title")}</h1>
       {notifications.length === 0 ? (
-        <EmptyState title="알림이 없습니다." />
+        <EmptyState title={tr("notif.empty")} />
       ) : (
         <div className="space-y-2">
           {notifications.map((n) => (
@@ -35,7 +38,7 @@ export function NotificationsClient({ notifications }: { notifications: any[] })
                   </div>
                   <p className="mt-1 text-sm text-slate-600">{n.message}</p>
                   <p className="mt-1 text-xs text-slate-400">
-                    {new Date(n.createdAt).toLocaleString("ko-KR")}
+                    {new Date(n.createdAt).toLocaleString(locale)}
                   </p>
                 </div>
                 <div className="flex shrink-0 gap-2">
@@ -45,7 +48,7 @@ export function NotificationsClient({ notifications }: { notifications: any[] })
                       onClick={() => fetch(`/api/notifications/${n.id}/read`, { method: "PATCH" })}
                       className="text-xs text-brand-600 hover:underline"
                     >
-                      바로가기
+                      {tr("notif.goto")}
                     </Link>
                   )}
                   {!n.isRead && (
@@ -53,7 +56,7 @@ export function NotificationsClient({ notifications }: { notifications: any[] })
                       onClick={() => markRead(n.id, null)}
                       className="text-xs text-slate-400 hover:underline"
                     >
-                      읽음
+                      {tr("notif.markread")}
                     </button>
                   )}
                 </div>

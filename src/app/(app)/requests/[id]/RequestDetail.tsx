@@ -12,35 +12,46 @@ import {
   EmptyState,
 } from "@/components/ui";
 import {
-  REQUEST_TYPE_LABELS,
+  requestTypeLabel,
+  attachmentTypeLabel,
   REQUEST_STATUSES,
   REQUEST_STATUS_LABELS,
   ATTACHMENT_TYPES,
-  ATTACHMENT_TYPE_LABELS,
   ROLE_LABELS,
   type RequestType,
-  type RequestStatus,
+  type AttachmentType,
   type Role,
 } from "@/lib/enums";
 import { TEMPLATE_FILES } from "@/lib/formConfig";
+import { makeT, type Lang } from "@/lib/i18n";
 import { ReleaseEditor } from "./ReleaseEditor";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Data = any;
+type Tr = (key: string) => string;
 
-const TABS = ["신청 정보", "보도자료", "첨부파일", "체크리스트", "코멘트", "이력"] as const;
+// 탭은 key(고정)로 관리하고 라벨만 언어별로 표시한다.
+const TAB_KEYS = ["info", "release", "files", "checklist", "comments", "history"] as const;
+type TabKey = (typeof TAB_KEYS)[number];
+const TAB_LABEL_KEY: Record<TabKey, string> = {
+  info: "d.tab.info", release: "d.tab.release", files: "d.tab.files",
+  checklist: "d.tab.checklist", comments: "d.tab.comments", history: "d.tab.history",
+};
 
 export function RequestDetail({
   data,
   isManager,
   currentUserId,
+  lang = "ko",
 }: {
   data: Data;
   isManager: boolean;
   currentUserId: string;
+  lang?: Lang;
 }) {
   const router = useRouter();
-  const [tab, setTab] = useState<(typeof TABS)[number]>("신청 정보");
+  const tr = makeT(lang);
+  const [tab, setTab] = useState<TabKey>("info");
   const [busy, setBusy] = useState(false);
 
   const type = data.type as RequestType;
@@ -57,7 +68,7 @@ export function RequestDetail({
       });
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
-        alert(d.error ?? "요청에 실패했습니다.");
+        alert(d.error ?? tr("d.req.failed"));
         return null;
       }
       return res.json().catch(() => ({}));
@@ -71,7 +82,7 @@ export function RequestDetail({
     if (r) router.refresh();
   }
 
-  const visibleTabs = TABS.filter((t) => t !== "체크리스트" || isManager);
+  const visibleTabs = TAB_KEYS.filter((t) => t !== "checklist" || isManager);
 
   return (
     <div>
@@ -81,27 +92,27 @@ export function RequestDetail({
           onClick={() => router.push("/requests")}
           className="mb-2 text-sm text-slate-400 hover:text-slate-600"
         >
-          ← 목록으로
+          {tr("d.back")}
         </button>
         <div className="flex flex-wrap items-center gap-2">
           <h1 className="font-display text-2xl text-pgray-900">{data.title}</h1>
-          {data.isUrgent && <Badge color="bg-brand-100 text-brand-700">긴급</Badge>}
+          {data.isUrgent && <Badge color="bg-brand-100 text-brand-700">{tr("d.urgent")}</Badge>}
         </div>
         <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-slate-500">
           <StatusBadge status={data.status} detailed />
           <span>·</span>
-          <span>{REQUEST_TYPE_LABELS[type]}</span>
+          <span>{requestTypeLabel(type, lang)}</span>
           <span>·</span>
           <span>{data.department ?? "-"}</span>
           <span>·</span>
-          <span>신청자 {data.applicant.name}</span>
+          <span>{tr("d.applicant")} {data.applicant.name}</span>
         </div>
       </div>
 
       {/* Missing materials warning (manager) */}
       {isManager && data.missing?.length > 0 && (
         <Card className="mb-4 border-accent-200 bg-accent-50 p-3">
-          <div className="text-sm font-semibold text-accent-800">⚠️ 자료 누락 감지</div>
+          <div className="text-sm font-semibold text-accent-800">{tr("d.missing.title")}</div>
           <ul className="mt-1 list-inside list-disc text-sm text-accent-700">
             {data.missing.map((m: string) => (
               <li key={m}>{m}</li>
@@ -116,7 +127,7 @@ export function RequestDetail({
           {/* Applicant submit */}
           {!isManager && data.status === "DRAFT" && (
             <Button disabled={busy} onClick={() => changeStatus("SUBMITTED")}>
-              홍보 신청 제출
+              {tr("d.submit")}
             </Button>
           )}
           {/* Applicant review actions */}
@@ -124,10 +135,10 @@ export function RequestDetail({
             ["APPLICANT_REVIEW", "ENGLISH_REVIEW_REQUESTED"].includes(data.status) && (
               <>
                 <Button disabled={busy} onClick={() => changeStatus("REVISION_REQUESTED")} variant="secondary">
-                  수정 요청
+                  {tr("d.reviseReq")}
                 </Button>
                 <Button disabled={busy} onClick={() => changeStatus("FINAL_COMPLETED")}>
-                  검토 완료 (이상 없음)
+                  {tr("d.reviewOk")}
                 </Button>
               </>
             )}
@@ -135,7 +146,7 @@ export function RequestDetail({
           {/* Manager status control */}
           {isManager && (
             <div className="flex items-center gap-2">
-              <span className="text-sm text-slate-500">상태 변경:</span>
+              <span className="text-sm text-slate-500">{tr("d.status.change")}</span>
               <select
                 className="rounded-lg border border-slate-300 px-2 py-1.5 text-sm"
                 value={data.status}
@@ -152,7 +163,7 @@ export function RequestDetail({
           )}
         </div>
 
-        {isManager && <ManagerScheduling data={data} api={api} onDone={() => router.refresh()} />}
+        {isManager && <ManagerScheduling data={data} api={api} tr={tr} onDone={() => router.refresh()} />}
       </Card>
 
       {/* Tabs */}
@@ -167,20 +178,20 @@ export function RequestDetail({
                 : "border-transparent text-slate-500 hover:text-slate-700"
             }`}
           >
-            {t}
-            {t === "첨부파일" && data.attachments.length > 0 && ` (${data.attachments.length})`}
-            {t === "코멘트" && data.comments.length > 0 && ` (${data.comments.length})`}
+            {tr(TAB_LABEL_KEY[t])}
+            {t === "files" && data.attachments.length > 0 && ` (${data.attachments.length})`}
+            {t === "comments" && data.comments.length > 0 && ` (${data.comments.length})`}
           </button>
         ))}
       </div>
 
-      {tab === "신청 정보" && <InfoTab data={data} />}
-      {tab === "보도자료" && (
+      {tab === "info" && <InfoTab data={data} tr={tr} lang={lang} />}
+      {tab === "release" && (
         <div className="space-y-6">
-          <DraftPanel data={data} isManager={isManager} onChange={() => router.refresh()} />
+          <DraftPanel data={data} isManager={isManager} tr={tr} onChange={() => router.refresh()} />
           <details className="rounded-xl border border-pgray-200 bg-white">
             <summary className="cursor-pointer px-5 py-3 text-sm font-semibold text-pgray-600">
-              (선택) 시스템 내 보도자료 편집기 · 국문/영문 최종본 작성
+              {lang === "en" ? "(Optional) In-system press release editor · Korean/English final drafts" : "(선택) 시스템 내 보도자료 편집기 · 국문/영문 최종본 작성"}
             </summary>
             <div className="space-y-6 p-5 pt-0">
               <ReleaseEditor release={ko} language="KO" pressRequestId={data.id} isManager={isManager} onChange={() => router.refresh()} />
@@ -189,25 +200,25 @@ export function RequestDetail({
           </details>
         </div>
       )}
-      {tab === "첨부파일" && (
-        <AttachmentsTab data={data} isManager={isManager} currentUserId={currentUserId} onChange={() => router.refresh()} />
+      {tab === "files" && (
+        <AttachmentsTab data={data} isManager={isManager} currentUserId={currentUserId} tr={tr} lang={lang} onChange={() => router.refresh()} />
       )}
-      {tab === "체크리스트" && isManager && (
-        <ChecklistTab data={data} api={api} onChange={() => router.refresh()} />
+      {tab === "checklist" && isManager && (
+        <ChecklistTab data={data} api={api} tr={tr} onChange={() => router.refresh()} />
       )}
-      {tab === "코멘트" && <CommentsTab data={data} onChange={() => router.refresh()} />}
-      {tab === "이력" && <AuditTab data={data} />}
+      {tab === "comments" && <CommentsTab data={data} tr={tr} onChange={() => router.refresh()} />}
+      {tab === "history" && <AuditTab data={data} tr={tr} lang={lang} />}
     </div>
   );
 }
 
-function ManagerScheduling({ data, api, onDone }: { data: Data; api: any; onDone: () => void }) {
+function ManagerScheduling({ data, api, tr, onDone }: { data: Data; api: any; tr: Tr; onDone: () => void }) {
   const [date, setDate] = useState(
     data.expectedPublishDate ? String(data.expectedPublishDate).slice(0, 10) : "",
   );
   return (
     <div className="mt-3 flex flex-wrap items-end gap-2 border-t border-slate-100 pt-3">
-      <Field label="예상 배포일 (저장 시 신청자에게 안내 알림 발송)">
+      <Field label={tr("d.sched.label")}>
         <input
           type="date"
           className={inputClass}
@@ -224,7 +235,7 @@ function ManagerScheduling({ data, api, onDone }: { data: Data; api: any; onDone
           if (r) onDone();
         }}
       >
-        배포일 저장·안내
+        {tr("d.sched.save")}
       </Button>
     </div>
   );
@@ -233,10 +244,12 @@ function ManagerScheduling({ data, api, onDone }: { data: Data; api: any; onDone
 function DraftPanel({
   data,
   isManager,
+  tr,
   onChange,
 }: {
   data: Data;
   isManager: boolean;
+  tr: Tr;
   onChange: () => void;
 }) {
   const [uploading, setUploading] = useState(false);
@@ -253,7 +266,7 @@ function DraftPanel({
       const res = await fetch(`/api/press-requests/${data.id}/attachments`, { method: "POST", body: fd });
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
-        alert(d.error ?? "업로드 실패");
+        alert(d.error ?? tr("d.upload.failed"));
         return;
       }
       onChange();
@@ -265,25 +278,23 @@ function DraftPanel({
   return (
     <Card className="p-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="text-lg font-bold text-pgray-900">보도자료 초안</div>
+        <div className="text-lg font-bold text-pgray-900">{tr("d.draft.title")}</div>
         <a
           href={TEMPLATE_FILES[type]}
           download
           className="inline-flex items-center rounded-lg border border-accent-300 bg-accent-50 px-3 py-1.5 text-sm font-semibold text-accent-800 hover:bg-accent-100"
         >
-          📄 초안 양식 다운로드
+          {tr("d.draft.tpl")}
         </a>
       </div>
       <p className="mt-1 text-sm text-pgray-500">
-        {isManager
-          ? "신청자가 올린 초안을 내려받아 보완한 뒤, 보완본을 다시 업로드하세요."
-          : "양식을 내려받아 작성한 보도자료 초안을 업로드하세요. 대외협력팀이 검토·보완합니다."}
+        {isManager ? tr("d.draft.desc.manager") : tr("d.draft.desc.applicant")}
       </p>
 
       <div className="mt-3 space-y-2">
         {drafts.length === 0 ? (
           <div className="rounded-lg border border-dashed border-pgray-300 py-6 text-center text-sm text-pgray-400">
-            아직 업로드된 초안이 없습니다.
+            {tr("d.draft.none")}
           </div>
         ) : (
           drafts.map((a: any) => (
@@ -297,7 +308,7 @@ function DraftPanel({
                 </div>
               </div>
               <a href={a.fileUrl} download className="shrink-0 text-xs font-medium text-brand-600 hover:underline">
-                다운로드
+                {tr("d.draft.download")}
               </a>
             </div>
           ))
@@ -305,7 +316,7 @@ function DraftPanel({
       </div>
 
       <label className="mt-3 inline-flex cursor-pointer items-center rounded-lg bg-brand-600 px-3.5 py-2 text-sm font-semibold text-white hover:bg-brand-700">
-        {uploading ? "업로드 중…" : isManager ? "보완본 업로드" : "초안 업로드"}
+        {uploading ? tr("d.uploading") : isManager ? tr("d.draft.upload.manager") : tr("d.draft.upload.applicant")}
         <input
           type="file"
           className="hidden"
@@ -321,28 +332,28 @@ function DraftPanel({
   );
 }
 
-function InfoTab({ data }: { data: Data }) {
+function InfoTab({ data, tr, lang }: { data: Data; tr: Tr; lang: Lang }) {
   return (
     <div className="grid gap-4 lg:grid-cols-2">
       <Card className="p-5">
-        <div className="mb-3 text-sm font-semibold text-slate-700">공통 정보</div>
+        <div className="mb-3 text-sm font-semibold text-slate-700">{tr("d.common")}</div>
         <dl className="space-y-2 text-sm">
-          <Row label="신청자" value={`${data.applicant.name} (${data.applicant.email})`} />
-          <Row label="소속" value={data.department ?? "-"} />
-          <Row label="신청일시" value={data.submittedAt ? fmtDateTime(data.submittedAt) : "임시저장 (미제출)"} />
-          <Row label="연락처" value={data.contactPhone ?? "-"} />
-          <Row label="홍보 희망일" value={fmt(data.desiredPublishDate)} />
-          <Row label="예상 배포일" value={fmt(data.expectedPublishDate)} />
-          <Row label="참고 메모" value={data.note ?? "-"} />
+          <Row label={tr("d.f.applicant")} value={`${data.applicant.name} (${data.applicant.email})`} />
+          <Row label={tr("d.f.dept")} value={data.department ?? "-"} />
+          <Row label={tr("d.f.submittedAt")} value={data.submittedAt ? fmtDateTime(data.submittedAt, lang) : tr("d.f.notSubmitted")} />
+          <Row label={tr("d.f.phone")} value={data.contactPhone ?? "-"} />
+          <Row label={tr("d.f.desiredDate")} value={fmt(data.desiredPublishDate, lang)} />
+          <Row label={tr("d.f.expectedDate")} value={fmt(data.expectedPublishDate, lang)} />
+          <Row label={tr("d.f.note")} value={data.note ?? "-"} />
         </dl>
       </Card>
       <Card className="p-5">
         <div className="mb-3 text-sm font-semibold text-slate-700">
-          {REQUEST_TYPE_LABELS[data.type as RequestType]} 상세
+          {requestTypeLabel(data.type as RequestType, lang)} {tr("d.detail.suffix")}
         </div>
         <dl className="space-y-2 text-sm">
           {data.detailFields.filter((f: any) => f.value).length === 0 ? (
-            <p className="text-slate-400">입력된 상세 정보가 없습니다.</p>
+            <p className="text-slate-400">{tr("d.detail.none")}</p>
           ) : (
             data.detailFields
               .filter((f: any) => f.value)
@@ -367,11 +378,15 @@ function AttachmentsTab({
   data,
   isManager,
   currentUserId,
+  tr,
+  lang,
   onChange,
 }: {
   data: Data;
   isManager: boolean;
   currentUserId: string;
+  tr: Tr;
+  lang: Lang;
   onChange: () => void;
 }) {
   const [fileType, setFileType] = useState("REPRESENTATIVE_IMAGE");
@@ -402,7 +417,7 @@ function AttachmentsTab({
   }
 
   async function remove(id: string) {
-    if (!confirm("이 파일을 삭제할까요?")) return;
+    if (!confirm(tr("d.att.confirmDelete"))) return;
     const res = await fetch(`/api/attachments/${id}`, { method: "DELETE" });
     if (res.ok) onChange();
   }
@@ -410,9 +425,9 @@ function AttachmentsTab({
   return (
     <div className="space-y-4">
       <Card className="p-4">
-        <div className="mb-2 text-sm font-semibold text-slate-700">파일 업로드</div>
+        <div className="mb-2 text-sm font-semibold text-slate-700">{tr("d.att.upload")}</div>
         <div className="flex flex-wrap items-end gap-2">
-          <Field label="자료 유형">
+          <Field label={tr("d.att.kind")}>
             <select
               className={inputClass}
               value={fileType}
@@ -420,16 +435,16 @@ function AttachmentsTab({
             >
               {ATTACHMENT_TYPES.map((t) => (
                 <option key={t} value={t}>
-                  {ATTACHMENT_TYPE_LABELS[t]}
+                  {attachmentTypeLabel(t, lang)}
                 </option>
               ))}
             </select>
           </Field>
-          <Field label="설명">
+          <Field label={tr("d.att.desc")}>
             <input className={inputClass} value={desc} onChange={(e) => setDesc(e.target.value)} />
           </Field>
           <label className="inline-flex cursor-pointer items-center rounded-lg bg-brand-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-brand-700">
-            {uploading ? "업로드 중…" : "파일 선택"}
+            {uploading ? tr("d.uploading") : tr("d.att.pick")}
             <input
               type="file"
               className="hidden"
@@ -443,12 +458,12 @@ function AttachmentsTab({
           </label>
         </div>
         <p className="mt-2 text-xs text-slate-400">
-          허용: 이미지/PDF/문서/한글/zip, 최대 20MB
+          {tr("d.att.allow")}
         </p>
       </Card>
 
       {data.attachments.length === 0 ? (
-        <EmptyState title="첨부된 파일이 없습니다." />
+        <EmptyState title={tr("d.att.none")} />
       ) : (
         <div className="grid gap-2 sm:grid-cols-2">
           {data.attachments.map((a: any) => (
@@ -458,14 +473,14 @@ function AttachmentsTab({
                   {a.fileName}
                 </a>
                 <div className="mt-0.5 flex items-center gap-1 text-xs text-slate-400">
-                  <Badge>{ATTACHMENT_TYPE_LABELS[a.fileType as keyof typeof ATTACHMENT_TYPE_LABELS] ?? a.fileType}</Badge>
+                  <Badge>{attachmentTypeLabel(a.fileType as AttachmentType, lang) ?? a.fileType}</Badge>
                   <span>{(a.size / 1024).toFixed(0)} KB</span>
                   {a.description && <span>· {a.description}</span>}
                 </div>
               </div>
               {(isManager || a.uploadedById === currentUserId) && (
                 <button onClick={() => remove(a.id)} className="shrink-0 text-xs text-brand-600 hover:underline">
-                  삭제
+                  {tr("d.remove")}
                 </button>
               )}
             </Card>
@@ -476,12 +491,12 @@ function AttachmentsTab({
   );
 }
 
-function ChecklistTab({ data, api, onChange }: { data: Data; api: any; onChange: () => void }) {
+function ChecklistTab({ data, api, tr, onChange }: { data: Data; api: any; tr: Tr; onChange: () => void }) {
   return (
     <Card className="p-5">
-      <div className="mb-3 text-sm font-semibold text-slate-700">자료 확인 체크리스트</div>
+      <div className="mb-3 text-sm font-semibold text-slate-700">{tr("d.chk.title")}</div>
       {data.checklist.length === 0 ? (
-        <p className="text-sm text-slate-400">체크리스트가 없습니다.</p>
+        <p className="text-sm text-slate-400">{tr("d.chk.none")}</p>
       ) : (
         <ul className="space-y-2">
           {data.checklist.map((c: any) => (
@@ -508,7 +523,7 @@ function ChecklistTab({ data, api, onChange }: { data: Data; api: any; onChange:
   );
 }
 
-function CommentsTab({ data, onChange }: { data: Data; onChange: () => void }) {
+function CommentsTab({ data, tr, onChange }: { data: Data; tr: Tr; onChange: () => void }) {
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -534,7 +549,7 @@ function CommentsTab({ data, onChange }: { data: Data; onChange: () => void }) {
     <Card className="p-5">
       <div className="mb-3 space-y-3">
         {data.comments.length === 0 ? (
-          <p className="text-sm text-slate-400">아직 코멘트가 없습니다.</p>
+          <p className="text-sm text-slate-400">{tr("d.cmt.none")}</p>
         ) : (
           data.comments.map((c: any) => (
             <div key={c.id} className="rounded-lg bg-slate-50 p-3">
@@ -552,31 +567,32 @@ function CommentsTab({ data, onChange }: { data: Data; onChange: () => void }) {
         <textarea
           className={inputClass}
           rows={2}
-          placeholder="코멘트 입력…"
+          placeholder={tr("d.cmt.ph")}
           value={text}
           onChange={(e) => setText(e.target.value)}
         />
         <Button disabled={busy} onClick={submit}>
-          등록
+          {tr("d.cmt.add")}
         </Button>
       </div>
     </Card>
   );
 }
 
-function AuditTab({ data }: { data: Data }) {
-  if (data.auditLogs.length === 0) return <EmptyState title="이력이 없습니다." />;
+function AuditTab({ data, tr, lang }: { data: Data; tr: Tr; lang: Lang }) {
+  if (data.auditLogs.length === 0) return <EmptyState title={tr("d.hist.none")} />;
+  const locale = lang === "en" ? "en-US" : "ko-KR";
   return (
     <Card className="p-5">
       <ul className="space-y-2 text-sm">
         {data.auditLogs.map((l: any) => (
           <li key={l.id} className="flex items-start gap-3 border-b border-slate-100 pb-2">
             <span className="w-36 shrink-0 text-xs text-slate-400">
-              {new Date(l.createdAt).toLocaleString("ko-KR")}
+              {new Date(l.createdAt).toLocaleString(locale)}
             </span>
             <span className="font-medium text-slate-600">{l.action}</span>
             <span className="text-slate-400">
-              {l.user?.name ?? "시스템"}
+              {l.user?.name ?? tr("d.hist.system")}
               {l.beforeValue || l.afterValue
                 ? ` · ${l.beforeValue ?? ""}${l.beforeValue && l.afterValue ? " → " : ""}${l.afterValue ?? ""}`
                 : ""}
@@ -588,14 +604,14 @@ function AuditTab({ data }: { data: Data }) {
   );
 }
 
-function fmt(d: string | null) {
-  return d ? new Date(d).toLocaleDateString("ko-KR") : "-";
+function fmt(d: string | null, lang: Lang = "ko") {
+  return d ? new Date(d).toLocaleDateString(lang === "en" ? "en-US" : "ko-KR") : "-";
 }
 
 // 날짜 + 시간 (예: 2026. 8. 8. 14:32)
-function fmtDateTime(d: string | null) {
+function fmtDateTime(d: string | null, lang: Lang = "ko") {
   if (!d) return "-";
-  return new Date(d).toLocaleString("ko-KR", {
+  return new Date(d).toLocaleString(lang === "en" ? "en-US" : "ko-KR", {
     year: "numeric", month: "2-digit", day: "2-digit",
     hour: "2-digit", minute: "2-digit", hour12: false,
   });
