@@ -29,6 +29,20 @@ export const REQUEST_TYPE_LABELS: Record<RequestType, string> = {
   OTHER: "기타 대학 소식",
 };
 
+export const REQUEST_TYPE_LABELS_EN: Record<RequestType, string> = {
+  RESEARCH: "Research Achievement",
+  AWARD: "Award",
+  APPOINTMENT: "Committee Appointment",
+  PERSONAL_NEWS: "Personal News",
+  EVENT: "Event",
+  OTHER: "Other University News",
+};
+
+// 언어별 유형 라벨 헬퍼
+export function requestTypeLabel(type: RequestType, lang: "ko" | "en" = "ko") {
+  return lang === "en" ? REQUEST_TYPE_LABELS_EN[type] : REQUEST_TYPE_LABELS[type];
+}
+
 export const REQUEST_STATUSES = [
   "DRAFT",
   "SUBMITTED",
@@ -167,6 +181,24 @@ export const ATTACHMENT_TYPE_LABELS: Record<AttachmentType, string> = {
   AWARD_MATERIAL: "수상 관련 자료",
   OTHER: "기타 첨부파일",
 };
+
+export const ATTACHMENT_TYPE_LABELS_EN: Record<AttachmentType, string> = {
+  PRESS_RELEASE_DRAFT: "Press Release Draft",
+  RESEARCHER_PHOTO: "Researcher Photo",
+  REPRESENTATIVE_IMAGE: "Key Image",
+  VIDEO: "Video",
+  RESEARCH_IMAGE: "Research Image",
+  EVENT_PHOTO: "Event Photo",
+  POSTER: "Poster",
+  REFERENCE: "Reference",
+  PAPER_PDF: "Paper PDF",
+  AWARD_MATERIAL: "Award Material",
+  OTHER: "Other Attachment",
+};
+
+export function attachmentTypeLabel(type: AttachmentType, lang: "ko" | "en" = "ko") {
+  return lang === "en" ? ATTACHMENT_TYPE_LABELS_EN[type] : ATTACHMENT_TYPE_LABELS[type];
+}
 
 export const NOTIFICATION_TYPES = [
   "SUBMITTED",

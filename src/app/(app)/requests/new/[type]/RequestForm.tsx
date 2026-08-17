@@ -3,13 +3,15 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, Button, Field, inputClass } from "@/components/ui";
-import { DETAIL_FORM, REQUEST_GUIDE, TEMPLATE_FILES } from "@/lib/formConfig";
+import { localizeFields, requestGuide, TEMPLATE_FILES } from "@/lib/formConfig";
 import {
-  REQUEST_TYPE_LABELS,
+  requestTypeLabel,
+  attachmentTypeLabel,
   ATTACHMENT_TYPES,
-  ATTACHMENT_TYPE_LABELS,
   type RequestType,
+  type AttachmentType,
 } from "@/lib/enums";
+import { makeT, type Lang } from "@/lib/i18n";
 
 type PickedFile = { file: File; fileType: string };
 type Corr = { name: string; dept: string; empNo: string };
@@ -24,13 +26,16 @@ const isDoc = (t: string) => (DOC_TYPES as readonly string[]).includes(t);
 export function RequestForm({
   type,
   me,
+  lang = "ko",
 }: {
   type: RequestType;
   me: { name: string; email: string; department: string };
+  lang?: Lang;
 }) {
   const router = useRouter();
+  const tr = makeT(lang);
   const isResearch = type === "RESEARCH";
-  const fields = DETAIL_FORM[type].filter((f) => !(isResearch && CORR_KEYS.includes(f.name)));
+  const fields = localizeFields(type, lang).filter((f) => !(isResearch && CORR_KEYS.includes(f.name)));
 
   const [form, setForm] = useState<Record<string, string>>({});
   const [corr, setCorr] = useState<Corr[]>([{ name: "", dept: "", empNo: "" }]);
@@ -61,7 +66,7 @@ export function RequestForm({
   function addAsset(f: File, fileType: string) {
     const ok = fileType === "VIDEO" ? isVideo(f) : isJpg(f);
     if (!ok) {
-      setError(fileType === "VIDEO" ? "동영상은 mp4/mov 형식만 업로드할 수 있습니다." : "사진은 JPG(.jpg) 형식만 업로드할 수 있습니다.");
+      setError(fileType === "VIDEO" ? tr("form.err.video") : tr("form.err.jpg"));
       return;
     }
     setError("");
@@ -77,7 +82,7 @@ export function RequestForm({
   async function save(submit: boolean) {
     setError("");
     if (!common.applicantName.trim() || !common.applicantEmail.trim()) {
-      setError("신청자 이름과 이메일을 입력하세요.");
+      setError(tr("form.err.applicant"));
       return;
     }
     // 연구성과: 교신저자(복수) → 단일 컬럼에 ' / '로 합쳐 저장
@@ -108,7 +113,7 @@ export function RequestForm({
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(data.error ?? "저장에 실패했습니다.");
+        setError(data.error ?? tr("form.err.save"));
         return;
       }
       const data = await res.json();
@@ -128,21 +133,21 @@ export function RequestForm({
   return (
     <div className="max-w-3xl">
       <h1 className="text-2xl font-extrabold tracking-tight text-pgray-900">
-        새 홍보 신청 · <span className="text-brand-700">{REQUEST_TYPE_LABELS[type]}</span>
+        {tr("form.title")} · <span className="text-brand-700">{requestTypeLabel(type, lang)}</span>
       </h1>
 
       {/* 안내문(줄글) */}
       <Card className="mt-3 border-l-4 border-l-accent-500 bg-accent-50 p-4">
-        <p className="whitespace-pre-line text-sm leading-relaxed text-pgray-700">{REQUEST_GUIDE[type]}</p>
+        <p className="whitespace-pre-line text-sm leading-relaxed text-pgray-700">{requestGuide(type, lang)}</p>
       </Card>
 
       {/* 보도자료 초안 양식 다운로드 */}
       <Card className="mt-3 p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <div className="font-bold text-pgray-900">📄 보도자료 초안 양식</div>
+            <div className="font-bold text-pgray-900">{tr("form.tpl.title")}</div>
             <div className="text-sm text-pgray-500">
-              양식을 내려받아 작성하신 뒤, 아래 ‘보도자료 초안 업로드’에 첨부해 주세요.
+              {tr("form.tpl.desc")}
             </div>
           </div>
           <a
@@ -150,32 +155,32 @@ export function RequestForm({
             download
             className="inline-flex items-center justify-center rounded-lg bg-accent-500 px-3.5 py-2 text-sm font-bold text-pgray-900 hover:bg-accent-400"
           >
-            양식 다운로드
+            {tr("form.tpl.download")}
           </a>
         </div>
       </Card>
 
       {/* 기본 정보 */}
       <Card className="mt-3 p-5">
-        <div className="mb-3 text-base font-bold text-pgray-900">기본 정보</div>
+        <div className="mb-3 text-base font-bold text-pgray-900">{tr("form.basic")}</div>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="신청자 이름" required>
-            <input className={inputClass} value={common.applicantName} onChange={(e) => setCommon({ ...common, applicantName: e.target.value })} placeholder="예: 김범만" />
+          <Field label={tr("form.applicantName")} required>
+            <input className={inputClass} value={common.applicantName} onChange={(e) => setCommon({ ...common, applicantName: e.target.value })} placeholder={tr("form.applicantName.ph")} />
           </Field>
-          <Field label="신청자 이메일" hint="로그인 계정 이메일">
+          <Field label={tr("form.applicantEmail")} hint={tr("form.applicantEmail.hint")}>
             <input type="email" className={`${inputClass} bg-pgray-50 text-pgray-500`} value={common.applicantEmail} readOnly />
           </Field>
-          <Field label="소속 학과/부서">
+          <Field label={tr("form.department")}>
             <input className={inputClass} value={common.department} onChange={(e) => setCommon({ ...common, department: e.target.value })} />
           </Field>
-          <Field label="연락처">
+          <Field label={tr("form.phone")}>
             <input className={inputClass} value={common.contactPhone} onChange={(e) => setCommon({ ...common, contactPhone: e.target.value })} />
           </Field>
-          <Field label="홍보 희망일">
+          <Field label={tr("form.desiredDate")}>
             <input type="date" className={inputClass} value={common.desiredPublishDate} onChange={(e) => setCommon({ ...common, desiredPublishDate: e.target.value })} />
           </Field>
           <div className="sm:col-span-2">
-            <Field label="참고 메모">
+            <Field label={tr("form.note")}>
               <textarea className={inputClass} rows={2} value={common.note} onChange={(e) => setCommon({ ...common, note: e.target.value })} />
             </Field>
           </div>
@@ -185,29 +190,29 @@ export function RequestForm({
       {/* 유형별 상세 */}
       {(fields.length > 0 || isResearch) && (
         <Card className="mt-3 p-5">
-          <div className="mb-3 text-base font-bold text-pgray-900">{REQUEST_TYPE_LABELS[type]} 정보</div>
+          <div className="mb-3 text-base font-bold text-pgray-900">{requestTypeLabel(type, lang)} {tr("form.info.suffix")}</div>
 
           {/* 연구성과: 교신저자(복수 입력) */}
           {isResearch && (
             <div className="mb-4">
-              <div className="mb-2 text-sm font-semibold text-pgray-700">교신저자 <span className="text-brand-600">*</span></div>
+              <div className="mb-2 text-sm font-semibold text-pgray-700">{tr("form.corr")} <span className="text-brand-600">*</span></div>
               <div className="space-y-2">
                 {corr.map((c, i) => (
                   <div key={i} className="rounded-xl border border-pgray-200 p-3">
                     <div className="mb-2 flex items-center justify-between">
-                      <span className="text-xs font-semibold text-pgray-500">교신저자 {i + 1}</span>
+                      <span className="text-xs font-semibold text-pgray-500">{tr("form.corr.n")} {i + 1}</span>
                       {i > 0 && (
-                        <button onClick={() => removeCorr(i)} className="text-xs text-pgray-400 hover:text-brand-600">삭제</button>
+                        <button onClick={() => removeCorr(i)} className="text-xs text-pgray-400 hover:text-brand-600">{tr("form.remove")}</button>
                       )}
                     </div>
                     <div className="grid gap-3 sm:grid-cols-3">
-                      <Field label="이름" required={i === 0}>
+                      <Field label={tr("form.corr.name")} required={i === 0}>
                         <input className={inputClass} value={c.name} onChange={(e) => setCorrField(i, "name", e.target.value)} />
                       </Field>
-                      <Field label="소속 학과">
+                      <Field label={tr("form.corr.dept")}>
                         <input className={inputClass} value={c.dept} onChange={(e) => setCorrField(i, "dept", e.target.value)} />
                       </Field>
-                      <Field label="직번">
+                      <Field label={tr("form.corr.empNo")}>
                         <input className={inputClass} value={c.empNo} onChange={(e) => setCorrField(i, "empNo", e.target.value)} />
                       </Field>
                     </div>
@@ -215,9 +220,9 @@ export function RequestForm({
                 ))}
               </div>
               <button onClick={addCorr} className="mt-2 rounded-lg border border-brand-200 px-3 py-1.5 text-sm font-semibold text-brand-700 hover:bg-brand-50">
-                ＋ 교신저자 추가
+                {tr("form.corr.add")}
               </button>
-              <p className="mt-1 text-xs text-pgray-400">POSTECH 소속 교신저자가 둘 이상이면 추가해 주세요. (기본 1명)</p>
+              <p className="mt-1 text-xs text-pgray-400">{tr("form.corr.hint")}</p>
             </div>
           )}
 
@@ -241,43 +246,38 @@ export function RequestForm({
 
       {/* 사진·영상 첨부 */}
       <Card className="mt-3 p-5">
-        <div className="mb-1 text-base font-bold text-pgray-900">사진·영상 첨부</div>
-        <p className="mb-3 text-sm text-pgray-500">
-          <b>연구진 사진·대표 이미지</b>는 <b>JPG(.jpg)</b>, <b>동영상</b>은 <b>mp4/mov</b>로 첨부해 주세요.
-          사진은 인쇄·배포용이므로 <b>고해상도 원본</b>을, 영상은 <b>10~20초 내외의 짧은 길이</b>를 권장합니다. (파일당 최대 20MB)
-        </p>
+        <div className="mb-1 text-base font-bold text-pgray-900">{tr("form.media.title")}</div>
+        <p className="mb-3 text-sm text-pgray-500">{tr("form.media.desc")}</p>
         <div className="grid gap-3 sm:grid-cols-3">
-          <AssetUploader label="연구진 사진" hint="연구진 인물 사진 (JPG)" accept=".jpg,.jpeg,image/jpeg" icon="🖼️"
+          <AssetUploader label={tr("form.media.researcher")} hint={tr("form.media.researcher.hint")} accept=".jpg,.jpeg,image/jpeg" icon="🖼️" removeLabel={tr("form.remove")}
             files={files.filter((pf) => pf.fileType === "RESEARCHER_PHOTO")}
             onPick={(f) => addAsset(f, "RESEARCHER_PHOTO")}
-            onRemove={(file) => setFiles((prev) => prev.filter((pf) => pf.file !== file))} />
-          <AssetUploader label="대표 이미지" hint="연구 대표 이미지·도식 (JPG)" accept=".jpg,.jpeg,image/jpeg" icon="🖼️"
+            onRemove={(file) => setFiles((prev) => prev.filter((pf) => pf.file !== file))} pickLabel={tr("form.pick")} />
+          <AssetUploader label={tr("form.media.key")} hint={tr("form.media.key.hint")} accept=".jpg,.jpeg,image/jpeg" icon="🖼️" removeLabel={tr("form.remove")}
             files={files.filter((pf) => pf.fileType === "REPRESENTATIVE_IMAGE")}
             onPick={(f) => addAsset(f, "REPRESENTATIVE_IMAGE")}
-            onRemove={(file) => setFiles((prev) => prev.filter((pf) => pf.file !== file))} />
-          <AssetUploader label="동영상" hint="10~20초 권장 (mp4/mov)" accept="video/*,.mp4,.mov,.m4v" icon="🎬"
+            onRemove={(file) => setFiles((prev) => prev.filter((pf) => pf.file !== file))} pickLabel={tr("form.pick")} />
+          <AssetUploader label={tr("form.media.video")} hint={tr("form.media.video.hint")} accept="video/*,.mp4,.mov,.m4v" icon="🎬" removeLabel={tr("form.remove")}
             files={files.filter((pf) => pf.fileType === "VIDEO")}
             onPick={(f) => addAsset(f, "VIDEO")}
-            onRemove={(file) => setFiles((prev) => prev.filter((pf) => pf.file !== file))} />
+            onRemove={(file) => setFiles((prev) => prev.filter((pf) => pf.file !== file))} pickLabel={tr("form.pick")} />
         </div>
       </Card>
 
       {/* 보도자료 초안 업로드 (문서) */}
       <Card className="mt-3 p-5">
-        <div className="mb-1 text-base font-bold text-pgray-900">보도자료 초안 업로드</div>
-        <p className="mb-3 text-sm text-pgray-500">
-          작성한 <b>보도자료 초안</b>과 참고 문서를 첨부해 주세요. (한글/PDF/문서/zip, 최대 20MB) · 사진·영상은 위 ‘사진·영상 첨부’를 이용하세요.
-        </p>
+        <div className="mb-1 text-base font-bold text-pgray-900">{tr("form.doc.title")}</div>
+        <p className="mb-3 text-sm text-pgray-500">{tr("form.doc.desc")}</p>
         <div className="flex flex-wrap items-end gap-2">
-          <Field label="자료 유형">
+          <Field label={tr("form.doc.kind")}>
             <select className={inputClass} value={nextType} onChange={(e) => setNextType(e.target.value)}>
               {DOC_TYPES.map((t) => (
-                <option key={t} value={t}>{ATTACHMENT_TYPE_LABELS[t]}</option>
+                <option key={t} value={t}>{attachmentTypeLabel(t, lang)}</option>
               ))}
             </select>
           </Field>
           <label className="inline-flex cursor-pointer items-center rounded-lg bg-brand-600 px-3.5 py-2 text-sm font-semibold text-white hover:bg-brand-700">
-            파일 선택
+            {tr("form.file.pick")}
             <input type="file" accept=".hwp,.hwpx,.doc,.docx,.pdf,.zip,.txt,.ppt,.pptx" className="hidden"
               onChange={(e) => { const f = e.target.files?.[0]; if (f) addFile(f); e.target.value = ""; }} />
           </label>
@@ -288,11 +288,11 @@ export function RequestForm({
               <li key={i} className="flex items-center justify-between rounded-lg bg-pgray-50 px-3 py-2 text-sm">
                 <span className="truncate text-pgray-700">
                   <span className="mr-2 rounded bg-brand-100 px-1.5 py-0.5 text-xs font-medium text-brand-700">
-                    {ATTACHMENT_TYPE_LABELS[pf.fileType as keyof typeof ATTACHMENT_TYPE_LABELS]}
+                    {attachmentTypeLabel(pf.fileType as AttachmentType, lang)}
                   </span>
                   📄 {pf.file.name}
                 </span>
-                <button onClick={() => removeFile(i)} className="shrink-0 text-xs text-brand-600 hover:underline">제거</button>
+                <button onClick={() => removeFile(i)} className="shrink-0 text-xs text-brand-600 hover:underline">{tr("form.remove")}</button>
               </li>
             ) : null))}
           </ul>
@@ -302,8 +302,8 @@ export function RequestForm({
       {error && <p className="mt-3 text-sm font-medium text-brand-600">{error}</p>}
 
       <div className="mt-4 flex gap-2">
-        <Button variant="secondary" disabled={saving} onClick={() => save(false)}>임시저장</Button>
-        <Button disabled={saving} onClick={() => save(true)}>{saving ? "제출 중…" : "홍보 신청 제출"}</Button>
+        <Button variant="secondary" disabled={saving} onClick={() => save(false)}>{tr("form.save.draft")}</Button>
+        <Button disabled={saving} onClick={() => save(true)}>{saving ? tr("form.submitting") : tr("form.submit")}</Button>
       </div>
     </div>
   );
@@ -317,6 +317,8 @@ function AssetUploader({
   files,
   onPick,
   onRemove,
+  pickLabel = "선택",
+  removeLabel = "제거",
 }: {
   label: string;
   hint: string;
@@ -325,13 +327,15 @@ function AssetUploader({
   files: PickedFile[];
   onPick: (f: File) => void;
   onRemove: (f: File) => void;
+  pickLabel?: string;
+  removeLabel?: string;
 }) {
   return (
     <div className="rounded-xl border border-pgray-200 p-3">
       <div className="mb-1 flex items-center justify-between">
         <span className="text-sm font-semibold text-pgray-800">{label}</span>
         <label className="inline-flex cursor-pointer items-center rounded-lg bg-brand-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-brand-700">
-          선택
+          {pickLabel}
           <input type="file" accept={accept} className="hidden"
             onChange={(e) => { const f = e.target.files?.[0]; if (f) onPick(f); e.target.value = ""; }} />
         </label>
@@ -342,7 +346,7 @@ function AssetUploader({
           {files.map((pf, i) => (
             <li key={i} className="flex items-center justify-between rounded-lg bg-pgray-50 px-2.5 py-1.5 text-xs">
               <span className="truncate text-pgray-700">{icon} {pf.file.name}</span>
-              <button onClick={() => onRemove(pf.file)} className="shrink-0 text-brand-600 hover:underline">제거</button>
+              <button onClick={() => onRemove(pf.file)} className="shrink-0 text-brand-600 hover:underline">{removeLabel}</button>
             </li>
           ))}
         </ul>
