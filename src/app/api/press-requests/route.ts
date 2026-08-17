@@ -9,7 +9,7 @@ import {
   buildDetailData,
   DETAIL_RELATION,
 } from "@/lib/validation";
-import type { RequestType } from "@/lib/enums";
+import { REQUEST_TYPE_LABELS, type RequestType } from "@/lib/enums";
 
 export async function GET() {
   const user = await getCurrentUser();
@@ -38,6 +38,17 @@ export async function POST(req: Request) {
   const input = parsed.data;
   const type = input.type as RequestType;
 
+  // 신청자 정보(이름·이메일)로 신청자 계정을 찾거나 생성해 연결
+  const email = input.applicantEmail.trim().toLowerCase();
+  const applicant = await prisma.user.upsert({
+    where: { email },
+    create: { email, name: input.applicantName.trim(), department: input.department ?? null, role: "APPLICANT" },
+    update: { name: input.applicantName.trim(), ...(input.department ? { department: input.department } : {}) },
+  });
+
+  // 제목은 신청자가 입력하지 않으므로 자동 생성
+  const title = (input.title && input.title.trim()) || `[${REQUEST_TYPE_LABELS[type]}] ${input.applicantName.trim()}`;
+
   const detailData = buildDetailData(type, input.detail ?? {});
   const relation = DETAIL_RELATION[type];
 
@@ -45,9 +56,9 @@ export async function POST(req: Request) {
     data: {
       type,
       status: input.submit ? "SUBMITTED" : "DRAFT",
-      title: input.title,
-      applicantId: user.id,
-      department: input.department ?? user.department,
+      title,
+      applicantId: applicant.id,
+      department: input.department ?? applicant.department,
       contactPhone: input.contactPhone,
       desiredPublishDate: input.desiredPublishDate,
       isUrgent: input.isUrgent,
@@ -73,7 +84,7 @@ export async function POST(req: Request) {
   }
 
   await audit({
-    userId: user.id,
+    userId: applicant.id,
     pressRequestId: created.id,
     action: input.submit ? "REQUEST_SUBMITTED" : "REQUEST_CREATED",
     afterValue: created.status,
@@ -92,7 +103,7 @@ export async function POST(req: Request) {
           pressRequestId: created.id,
           type: "SUBMITTED",
           title: "새 홍보 신청",
-          message: `${user.name}님이 "${created.title}" 홍보를 신청했습니다.`,
+          message: `${input.applicantName}님이 "${created.title}" 홍보를 신청했습니다.`,
         }),
       ),
     );

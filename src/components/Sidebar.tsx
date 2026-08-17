@@ -24,9 +24,7 @@ export function Sidebar({ user, unreadCount }: { user: NavUser; unreadCount: num
         { href: "/notifications", label: "알림", icon: "🔔" },
       ]
     : [
-        { href: "/requests", label: "내 신청", icon: "📋" },
         { href: "/requests/new", label: "새 홍보 신청", icon: "➕" },
-        { href: "/notifications", label: "알림", icon: "🔔" },
       ];
   if (user.role === "ADMIN") links.push({ href: "/admin", label: "설정", icon: "⚙️" });
 

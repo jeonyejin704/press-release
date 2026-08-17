@@ -22,7 +22,7 @@ export function middleware(req: NextRequest) {
   const hasSession = req.cookies.has(SESSION_COOKIE);
   const role = req.cookies.get(ROLE_COOKIE)?.value;
   const url = req.nextUrl.clone();
-  url.pathname = !hasSession ? "/login" : role === "APPLICANT" ? "/requests" : "/dashboard";
+  url.pathname = !hasSession ? "/login" : role === "APPLICANT" ? "/requests/new" : "/dashboard";
   return NextResponse.redirect(url);
 }
 

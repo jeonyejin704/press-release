@@ -8,7 +8,7 @@ export type FieldDef = {
   hint?: string;
 };
 
-const CONTACT = "문의사항이 있을 경우 대외협력팀(054-279-2416)으로 연락 부탁드립니다.";
+const CONTACT = "문의사항이 있을 경우 대외협력팀으로 연락 부탁드립니다. ☎ 054-279-2416";
 
 // 유형별 '보도자료 초안 양식' 다운로드 파일 (public/templates 에 심어 둠).
 export const TEMPLATE_FILES: Record<RequestType, string> = {

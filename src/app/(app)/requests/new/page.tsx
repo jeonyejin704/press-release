@@ -24,7 +24,7 @@ export default function NewRequestPage() {
           각 유형 화면에서 <span className="font-semibold">‘보도자료 초안 양식’</span>을 내려받아 작성하신 뒤,
           파일로 업로드해 주세요. 대외협력팀이 이를 검토·보완하여 최종본을 완성합니다.
           <br />
-          <span className="text-pgray-500">문의사항이 있을 경우 대외협력팀(054-279-2416)으로 연락 부탁드립니다.</span>
+          <span className="text-pgray-500">문의사항이 있을 경우 대외협력팀으로 연락 부탁드립니다. ☎ 054-279-2416</span>
         </p>
       </Card>
 

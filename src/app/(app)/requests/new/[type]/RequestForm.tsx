@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Card, Button, Field, inputClass } from "@/components/ui";
 import { DETAIL_FORM, REQUEST_GUIDE, TEMPLATE_FILES } from "@/lib/formConfig";
 import {
@@ -14,11 +13,11 @@ import {
 type PickedFile = { file: File; fileType: string };
 
 export function RequestForm({ type }: { type: RequestType }) {
-  const router = useRouter();
   const fields = DETAIL_FORM[type];
   const [form, setForm] = useState<Record<string, string>>({});
   const [common, setCommon] = useState({
-    title: "",
+    applicantName: "",
+    applicantEmail: "",
     department: "",
     contactPhone: "",
     desiredPublishDate: "",
@@ -30,6 +29,7 @@ export function RequestForm({ type }: { type: RequestType }) {
   const [nextType, setNextType] = useState("PRESS_RELEASE_DRAFT");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [done, setDone] = useState(false);
 
   function setDetail(name: string, value: string) {
     setForm((f) => ({ ...f, [name]: value }));
@@ -55,8 +55,8 @@ export function RequestForm({ type }: { type: RequestType }) {
 
   async function save(submit: boolean) {
     setError("");
-    if (!common.title.trim()) {
-      setError("보도자료 제목을 입력하세요.");
+    if (!common.applicantName.trim() || !common.applicantEmail.trim()) {
+      setError("신청자 이름과 이메일을 입력하세요.");
       return;
     }
     setSaving(true);
@@ -66,7 +66,8 @@ export function RequestForm({ type }: { type: RequestType }) {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           type,
-          title: common.title,
+          applicantName: common.applicantName,
+          applicantEmail: common.applicantEmail,
           department: common.department || null,
           contactPhone: common.contactPhone || null,
           desiredPublishDate: common.desiredPublishDate || null,
@@ -92,11 +93,28 @@ export function RequestForm({ type }: { type: RequestType }) {
         await fetch(`/api/press-requests/${data.id}/attachments`, { method: "POST", body: fd });
       }
 
-      router.push(`/requests/${data.id}`);
-      router.refresh();
+      setDone(true);
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } finally {
       setSaving(false);
     }
+  }
+
+  if (done) {
+    return (
+      <div className="mx-auto max-w-lg pt-10 text-center">
+        <div className="mb-3 text-5xl">✅</div>
+        <h1 className="font-display text-2xl text-pgray-900">홍보 신청이 접수되었습니다</h1>
+        <p className="mt-2 text-sm text-pgray-500">
+          {common.applicantName}님의 <b>{REQUEST_TYPE_LABELS[type]}</b> 홍보 신청이 대외협력팀에 전달되었습니다.
+          <br />검토 후 대외협력팀에서 연락드릴 예정입니다.
+        </p>
+        <div className="mt-6 flex justify-center gap-2">
+          <Button onClick={() => { window.location.href = "/requests/new"; }}>새 홍보 신청 하기</Button>
+        </div>
+        <p className="mt-6 text-xs text-pgray-400">문의: 대외협력팀 ☎ 054-279-2416</p>
+      </div>
+    );
   }
 
   return (
@@ -133,15 +151,12 @@ export function RequestForm({ type }: { type: RequestType }) {
       <Card className="mt-3 p-5">
         <div className="mb-3 text-base font-bold text-pgray-900">기본 정보</div>
         <div className="grid gap-4 sm:grid-cols-2">
-          <div className="sm:col-span-2">
-            <Field label="보도자료 제목" required>
-              <input
-                className={inputClass}
-                value={common.title}
-                onChange={(e) => setCommon({ ...common, title: e.target.value })}
-              />
-            </Field>
-          </div>
+          <Field label="신청자 이름" required>
+            <input className={inputClass} value={common.applicantName} onChange={(e) => setCommon({ ...common, applicantName: e.target.value })} placeholder="예: 김범만" />
+          </Field>
+          <Field label="신청자 이메일" required>
+            <input type="email" className={inputClass} value={common.applicantEmail} onChange={(e) => setCommon({ ...common, applicantEmail: e.target.value })} placeholder="예: hong@postech.ac.kr" />
+          </Field>
           <Field label="소속 학과/부서">
             <input className={inputClass} value={common.department} onChange={(e) => setCommon({ ...common, department: e.target.value })} />
           </Field>
@@ -255,12 +270,9 @@ export function RequestForm({ type }: { type: RequestType }) {
 
       {error && <p className="mt-3 text-sm font-medium text-brand-600">{error}</p>}
 
-      <div className="mt-4 flex gap-2">
-        <Button variant="secondary" disabled={saving} onClick={() => save(false)}>
-          임시저장
-        </Button>
-        <Button disabled={saving} onClick={() => save(true)}>
-          {saving ? "저장 중…" : "홍보 신청 제출"}
+      <div className="mt-4">
+        <Button disabled={saving} onClick={() => save(true)} className="px-6">
+          {saving ? "제출 중…" : "홍보 신청 제출"}
         </Button>
       </div>
     </div>
