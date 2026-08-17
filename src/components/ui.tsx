@@ -2,15 +2,33 @@ import Link from "next/link";
 import {
   REQUEST_STATUS_COLORS,
   REQUEST_STATUS_LABELS,
+  STATUS_TO_PHASE,
+  STATUS_PHASE_LABELS,
+  STATUS_PHASE_COLORS,
   type RequestStatus,
 } from "@/lib/enums";
 
-export function StatusBadge({ status }: { status: string }) {
+// 기본은 4단계 묶음 라벨(접수/검토·작성 중/배포 예정/배포 완료 등)을 보여준다.
+// detailed=true 이면 14개 세부 상태 라벨을 그대로 보여준다(상세 페이지용).
+export function StatusBadge({ status, detailed = false }: { status: string; detailed?: boolean }) {
   const s = status as RequestStatus;
-  const color = REQUEST_STATUS_COLORS[s] ?? "bg-gray-100 text-gray-700";
-  const label = REQUEST_STATUS_LABELS[s] ?? status;
+  if (detailed) {
+    const color = REQUEST_STATUS_COLORS[s] ?? "bg-gray-100 text-gray-700";
+    const label = REQUEST_STATUS_LABELS[s] ?? status;
+    return (
+      <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${color}`}>
+        {label}
+      </span>
+    );
+  }
+  const phase = STATUS_TO_PHASE[s] ?? "DRAFT";
+  const color = STATUS_PHASE_COLORS[phase] ?? "bg-gray-100 text-gray-700";
+  const label = STATUS_PHASE_LABELS[phase] ?? status;
   return (
-    <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${color}`}>
+    <span
+      title={REQUEST_STATUS_LABELS[s] ?? status}
+      className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${color}`}
+    >
       {label}
     </span>
   );

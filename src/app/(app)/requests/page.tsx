@@ -6,9 +6,11 @@ import { Pagination } from "@/components/Pagination";
 import {
   REQUEST_TYPE_LABELS,
   REQUEST_TYPES,
-  REQUEST_STATUSES,
-  REQUEST_STATUS_LABELS,
+  STATUS_PHASE_ORDER,
+  STATUS_PHASE_LABELS,
+  PHASE_TO_STATUSES,
   type RequestType,
+  type StatusPhase,
 } from "@/lib/enums";
 
 export const dynamic = "force-dynamic";
@@ -25,7 +27,12 @@ export default async function RequestsPage({
   const where: Record<string, unknown> = {};
   if (!manager) where.applicantId = user.id;
   if (sp.type) where.type = sp.type;
-  if (sp.status) where.status = sp.status;
+  // 상태 필터: 4단계 묶음(phase) 기준. 하위 호환으로 개별 status 파라미터도 허용.
+  if (sp.phase && PHASE_TO_STATUSES[sp.phase as StatusPhase]) {
+    where.status = { in: PHASE_TO_STATUSES[sp.phase as StatusPhase] };
+  } else if (sp.status) {
+    where.status = sp.status;
+  }
   if (sp.department) where.department = sp.department;
   if (sp.applicant) where.applicantId = sp.applicant;
   if (sp.q) where.title = { contains: sp.q };
@@ -45,13 +52,18 @@ export default async function RequestsPage({
   });
 
   // 필터를 유지한 페이지 링크
-  const pageHref = (pg: number) => {
+  const buildQs = () => {
     const qs = new URLSearchParams();
     if (sp.q) qs.set("q", sp.q);
     if (sp.type) qs.set("type", sp.type);
+    if (sp.phase) qs.set("phase", sp.phase);
     if (sp.status) qs.set("status", sp.status);
     if (sp.department) qs.set("department", sp.department);
     if (sp.applicant) qs.set("applicant", sp.applicant);
+    return qs;
+  };
+  const pageHref = (pg: number) => {
+    const qs = buildQs();
     if (pg > 1) qs.set("page", String(pg));
     const s = qs.toString();
     return `/requests${s ? `?${s}` : ""}`;
@@ -59,13 +71,7 @@ export default async function RequestsPage({
 
   // 필터를 유지한 엑셀 내려받기 링크
   const exportHref = (() => {
-    const qs = new URLSearchParams();
-    if (sp.q) qs.set("q", sp.q);
-    if (sp.type) qs.set("type", sp.type);
-    if (sp.status) qs.set("status", sp.status);
-    if (sp.department) qs.set("department", sp.department);
-    if (sp.applicant) qs.set("applicant", sp.applicant);
-    const s = qs.toString();
+    const s = buildQs().toString();
     return `/api/press-requests/export${s ? `?${s}` : ""}`;
   })();
 
@@ -117,11 +123,11 @@ export default async function RequestsPage({
               </option>
             ))}
           </select>
-          <select name="status" defaultValue={sp.status ?? ""} className="rounded-lg border border-slate-300 px-2 py-1.5 text-sm">
+          <select name="phase" defaultValue={sp.phase ?? ""} className="rounded-lg border border-slate-300 px-2 py-1.5 text-sm">
             <option value="">상태 전체</option>
-            {REQUEST_STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {REQUEST_STATUS_LABELS[s]}
+            {STATUS_PHASE_ORDER.map((p) => (
+              <option key={p} value={p}>
+                {STATUS_PHASE_LABELS[p]}
               </option>
             ))}
           </select>

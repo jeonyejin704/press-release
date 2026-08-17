@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import * as XLSX from "xlsx";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser, isManager } from "@/lib/session";
-import { REQUEST_TYPE_LABELS, type RequestType } from "@/lib/enums";
+import { REQUEST_TYPE_LABELS, PHASE_TO_STATUSES, type RequestType, type StatusPhase } from "@/lib/enums";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,7 +23,12 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const where: Record<string, unknown> = {};
   if (searchParams.get("type")) where.type = searchParams.get("type");
-  if (searchParams.get("status")) where.status = searchParams.get("status");
+  const phase = searchParams.get("phase");
+  if (phase && PHASE_TO_STATUSES[phase as StatusPhase]) {
+    where.status = { in: PHASE_TO_STATUSES[phase as StatusPhase] };
+  } else if (searchParams.get("status")) {
+    where.status = searchParams.get("status");
+  }
   if (searchParams.get("department")) where.department = searchParams.get("department");
   if (searchParams.get("applicant")) where.applicantId = searchParams.get("applicant");
   if (searchParams.get("q")) where.title = { contains: searchParams.get("q") };

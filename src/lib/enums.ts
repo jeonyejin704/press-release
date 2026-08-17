@@ -85,6 +85,57 @@ export const REQUEST_STATUS_COLORS: Record<RequestStatus, string> = {
   REJECTED: "bg-pgray-300 text-pgray-800",
 };
 
+// ── 상태 4단계 묶음 (목록·필터를 단순하게 보여주기 위함) ──────────────
+// 14개 세부 상태를 4개 큰 단계로 묶어 표시한다. 보류/반려/초안은 별도 표시.
+export const STATUS_PHASES = ["RECEIVED", "IN_PROGRESS", "SCHEDULED", "DONE"] as const;
+export type StatusPhase = (typeof STATUS_PHASES)[number] | "HOLD" | "DRAFT";
+
+export const STATUS_PHASE_LABELS: Record<StatusPhase, string> = {
+  RECEIVED: "접수",
+  IN_PROGRESS: "검토·작성 중",
+  SCHEDULED: "배포 예정",
+  DONE: "배포 완료",
+  HOLD: "보류·반려",
+  DRAFT: "초안",
+};
+
+export const STATUS_PHASE_COLORS: Record<StatusPhase, string> = {
+  RECEIVED: "bg-brand-50 text-brand-700",
+  IN_PROGRESS: "bg-accent-100 text-accent-800",
+  SCHEDULED: "bg-brand-100 text-brand-700",
+  DONE: "bg-brand-700 text-white",
+  HOLD: "bg-pgray-200 text-pgray-700",
+  DRAFT: "bg-pgray-100 text-pgray-600",
+};
+
+// 세부 상태 → 4단계 매핑
+export const STATUS_TO_PHASE: Record<RequestStatus, StatusPhase> = {
+  DRAFT: "DRAFT",
+  SUBMITTED: "RECEIVED",
+  PR_REVIEW: "IN_PROGRESS",
+  MATERIAL_REQUESTED: "IN_PROGRESS",
+  APPLICANT_REVIEW: "IN_PROGRESS",
+  KOREAN_FINAL_CONFIRMED: "IN_PROGRESS",
+  ENGLISH_DRAFTING: "IN_PROGRESS",
+  ENGLISH_REVIEW_REQUESTED: "IN_PROGRESS",
+  REVISION_REQUESTED: "IN_PROGRESS",
+  FINAL_COMPLETED: "IN_PROGRESS",
+  SCHEDULED: "SCHEDULED",
+  DISTRIBUTED: "DONE",
+  ON_HOLD: "HOLD",
+  REJECTED: "HOLD",
+};
+
+// 필터 드롭다운에 노출할 큰 단계 순서 (초안은 매니저 목록에서 거의 안 쓰므로 뒤로)
+export const STATUS_PHASE_ORDER: StatusPhase[] = ["RECEIVED", "IN_PROGRESS", "SCHEDULED", "DONE", "HOLD", "DRAFT"];
+
+// 한 단계에 속하는 세부 상태 코드 목록 (필터 where절 in [] 에 사용)
+export const PHASE_TO_STATUSES: Record<StatusPhase, RequestStatus[]> = (() => {
+  const m = Object.fromEntries(STATUS_PHASE_ORDER.map((p) => [p, [] as RequestStatus[]])) as Record<StatusPhase, RequestStatus[]>;
+  for (const s of REQUEST_STATUSES) m[STATUS_TO_PHASE[s]].push(s);
+  return m;
+})();
+
 export const LANGUAGES = ["KO", "EN"] as const;
 export type Language = (typeof LANGUAGES)[number];
 

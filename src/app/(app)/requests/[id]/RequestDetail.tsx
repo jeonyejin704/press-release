@@ -88,7 +88,7 @@ export function RequestDetail({
           {data.isUrgent && <Badge color="bg-brand-100 text-brand-700">긴급</Badge>}
         </div>
         <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-slate-500">
-          <StatusBadge status={data.status} />
+          <StatusBadge status={data.status} detailed />
           <span>·</span>
           <span>{REQUEST_TYPE_LABELS[type]}</span>
           <span>·</span>
