@@ -1,0 +1,771 @@
+<title>베이비봉 대시보드</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  /* ===== Tokens: light (bare :root) ===== */
+  :root {
+    --bg:        #F3EFE8;   /* warm greige paper */
+    --surface:   #FBF8F3;   /* card */
+    --surface-2: #F0EBE1;   /* inset / subtle fill */
+    --line:      #E2DACB;   /* hairline */
+    --line-soft: #EBE4D8;
+    --ink:       #2C2530;   /* plum-charcoal */
+    --ink-soft:  #574E5A;
+    --muted:     #8A8189;
+
+    --plum:      #6E3D6B;   /* brand ink accent */
+    --plum-soft: #EFE1EE;
+    --amber:     #C77E33;   /* action / now */
+    --amber-soft:#F6E8D2;
+    --sage:      #557F5F;   /* growth / good / done */
+    --sage-soft: #E0EBDD;
+    --rust:      #B95344;   /* caution / avoid */
+    --rust-soft: #F5E0DC;
+    --sky:       #4E7690;   /* info / news */
+    --sky-soft:  #DEE9EE;
+
+    --shadow: 0 1px 2px rgba(44,37,48,.05), 0 8px 24px -14px rgba(44,37,48,.22);
+    --radius: 16px;
+    --radius-sm: 10px;
+
+    --font-sans: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", "Malgun Gothic", "Noto Sans KR", "Segoe UI", Roboto, sans-serif;
+    --font-serif: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg:        #1B171F;
+      --surface:   #241E29;
+      --surface-2: #2C2532;
+      --line:      #382F3F;
+      --line-soft: #322A38;
+      --ink:       #EEE7EC;
+      --ink-soft:  #C3B9C4;
+      --muted:     #8F849A;
+
+      --plum:      #C79BC4;
+      --plum-soft: #362A38;
+      --amber:     #E0A85B;
+      --amber-soft:#3A2E1E;
+      --sage:      #8FBF98;
+      --sage-soft: #24331F;
+      --rust:      #E28B7C;
+      --rust-soft: #3A211D;
+      --sky:       #8FB6CC;
+      --sky-soft:  #1F2C33;
+
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 30px -16px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg:        #1B171F;
+    --surface:   #241E29;
+    --surface-2: #2C2532;
+    --line:      #382F3F;
+    --line-soft: #322A38;
+    --ink:       #EEE7EC;
+    --ink-soft:  #C3B9C4;
+    --muted:     #8F849A;
+    --plum:      #C79BC4;
+    --plum-soft: #362A38;
+    --amber:     #E0A85B;
+    --amber-soft:#3A2E1E;
+    --sage:      #8FBF98;
+    --sage-soft: #24331F;
+    --rust:      #E28B7C;
+    --rust-soft: #3A211D;
+    --sky:       #8FB6CC;
+    --sky-soft:  #1F2C33;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 30px -16px rgba(0,0,0,.6);
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: -0.01em;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 22px 20px 80px; }
+
+  a { color: var(--plum); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  a:focus-visible, button:focus-visible, input:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--plum); outline-offset: 2px; border-radius: 4px;
+  }
+
+  .eyebrow {
+    font-family: var(--font-serif); font-style: italic;
+    color: var(--muted); font-size: .9rem; letter-spacing: .01em;
+  }
+  h1,h2,h3 { text-wrap: balance; letter-spacing: -0.02em; margin: 0; }
+
+  /* ===== Top bar ===== */
+  .topbar { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom: 18px; flex-wrap: wrap; }
+  .brand { display:flex; align-items:center; gap:10px; }
+  .brand .seed { font-size: 1.5rem; }
+  .brand b { font-size: 1.05rem; font-weight: 700; }
+  .brand span { color: var(--muted); font-size: .85rem; }
+  .theme-toggle {
+    border:1px solid var(--line); background: var(--surface); color: var(--ink-soft);
+    border-radius: 999px; padding: 6px 14px; font-size: .85rem; cursor: pointer;
+    font-family: inherit; display:inline-flex; align-items:center; gap:6px;
+  }
+  .theme-toggle:hover { border-color: var(--plum); color: var(--plum); }
+
+  /* ===== Hero ===== */
+  .hero {
+    background: var(--surface); border:1px solid var(--line); border-radius: var(--radius);
+    box-shadow: var(--shadow); padding: 26px; margin-bottom: 20px;
+    display:grid; grid-template-columns: 1.1fr 1fr; gap: 26px; align-items:center;
+  }
+  @media (max-width: 720px){ .hero { grid-template-columns: 1fr; gap: 18px; } }
+  .hero-left .week-num { font-family: var(--font-serif); font-size: clamp(3rem, 11vw, 4.6rem); line-height:1; color: var(--plum); font-weight: 600; }
+  .hero-left .week-label { color: var(--ink-soft); font-size: 1rem; margin-top: 6px; }
+  .hero-left .trimester {
+    display:inline-flex; align-items:center; gap:7px; margin-top:14px;
+    background: var(--sage-soft); color: var(--sage); border-radius:999px; padding:5px 13px; font-size:.82rem; font-weight:600;
+  }
+  .hero-right { display:flex; flex-direction:column; gap: 14px; }
+  .dday-row { display:flex; align-items:baseline; gap:10px; }
+  .dday { font-family: var(--font-serif); font-size: clamp(2rem,7vw,2.8rem); font-weight:600; color: var(--amber); font-variant-numeric: tabular-nums; }
+  .dday-sub { color: var(--muted); font-size:.9rem; }
+  .edd { color: var(--ink-soft); font-size:.92rem; }
+  .progress { height: 12px; background: var(--surface-2); border-radius: 999px; overflow:hidden; border:1px solid var(--line-soft); }
+  .progress > i { display:block; height:100%; background: linear-gradient(90deg, var(--sage), var(--amber)); border-radius:999px; transition: width .6s ease; }
+  .tri-marks { display:flex; justify-content:space-between; font-size:.72rem; color:var(--muted); margin-top:6px; }
+
+  .lmp-edit { font-size:.82rem; color:var(--muted); display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .lmp-edit input { font-family:inherit; font-size:.82rem; padding:4px 8px; border:1px solid var(--line); border-radius:8px; background:var(--surface-2); color:var(--ink); }
+
+  /* ===== Intro note ===== */
+  .note {
+    background: var(--plum-soft); border:1px solid var(--line); border-left: 3px solid var(--plum);
+    border-radius: var(--radius-sm); padding: 13px 16px; font-size:.9rem; color: var(--ink-soft); margin-bottom: 22px;
+  }
+  .note b { color: var(--ink); }
+
+  /* ===== Section ===== */
+  section { margin-bottom: 30px; }
+  .sec-head { display:flex; align-items:center; gap:10px; margin-bottom: 14px; }
+  .sec-head .dot { width:10px; height:10px; border-radius:3px; flex:none; }
+  .sec-head h2 { font-size: 1.25rem; }
+  .sec-head .tag { margin-left:auto; font-size:.78rem; color:var(--muted); }
+
+  .grid { display:grid; gap: 16px; }
+  .cols-2 { grid-template-columns: repeat(2, 1fr); }
+  .cols-3 { grid-template-columns: repeat(3, 1fr); }
+  @media (max-width: 820px){ .cols-2, .cols-3 { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--surface); border:1px solid var(--line); border-radius: var(--radius);
+    box-shadow: var(--shadow); padding: 20px;
+  }
+  .card h3 { font-size: 1.02rem; margin-bottom: 4px; display:flex; align-items:center; gap:8px; }
+  .card .sub { color: var(--muted); font-size:.83rem; margin-bottom: 14px; }
+  .pill { font-size:.72rem; font-weight:700; padding:3px 9px; border-radius:999px; letter-spacing:.02em; white-space:nowrap; }
+  .pill.now  { background: var(--amber-soft); color: var(--amber); }
+  .pill.soon { background: var(--sage-soft);  color: var(--sage); }
+  .pill.later{ background: var(--surface-2);  color: var(--muted); }
+  .pill.gov  { background: var(--plum-soft);  color: var(--plum); }
+  .pill.local{ background: var(--sky-soft);   color: var(--sky); }
+  .pill.school{background: var(--sage-soft);  color: var(--sage); }
+
+  /* ===== Checklist ===== */
+  ul.check { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:2px; }
+  ul.check li { display:flex; gap:11px; align-items:flex-start; padding: 9px 8px; border-radius: 10px; }
+  ul.check li:hover { background: var(--surface-2); }
+  ul.check input[type=checkbox]{
+    appearance:none; -webkit-appearance:none; margin:2px 0 0; flex:none;
+    width:20px; height:20px; border:2px solid var(--line); border-radius:6px; background:var(--surface);
+    cursor:pointer; position:relative; transition: all .15s;
+  }
+  ul.check input[type=checkbox]:checked { background: var(--sage); border-color: var(--sage); }
+  ul.check input[type=checkbox]:checked::after{
+    content:""; position:absolute; left:5px; top:1px; width:5px; height:10px;
+    border:solid #fff; border-width:0 2px 2px 0; transform:rotate(43deg);
+  }
+  ul.check label { cursor:pointer; font-size:.93rem; flex:1; }
+  ul.check .cx { color: var(--ink); }
+  ul.check input:checked + label .cx { text-decoration: line-through; color: var(--muted); }
+  ul.check .meta { display:block; color: var(--muted); font-size:.8rem; margin-top:2px; }
+  ul.check .meta a { font-size:.8rem; }
+
+  .item-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .item-row .amt { margin-left:auto; font-variant-numeric: tabular-nums; font-weight:700; color: var(--sage); font-size:.9rem; }
+
+  /* ===== Sub-tabs ===== */
+  .tabs { display:flex; gap:6px; margin-bottom: 14px; flex-wrap:wrap; }
+  .tabs button {
+    font-family:inherit; font-size:.85rem; padding:7px 14px; border-radius:999px; cursor:pointer;
+    border:1px solid var(--line); background: var(--surface); color: var(--ink-soft);
+  }
+  .tabs button[aria-selected="true"] { background: var(--plum); color:#fff; border-color: var(--plum); }
+  .tabpanel[hidden]{ display:none; }
+
+  /* ===== Nutrition timeline ===== */
+  .nutri { display:flex; flex-direction:column; gap:10px; }
+  .nutri .row { display:grid; grid-template-columns: 96px 1fr; gap:12px; align-items:start; padding:10px; border-radius:10px; background:var(--surface-2); }
+  .nutri .when { font-weight:700; font-size:.82rem; color:var(--plum); font-variant-numeric:tabular-nums; }
+  .nutri .name { font-weight:600; font-size:.92rem; }
+  .nutri .desc { color: var(--ink-soft); font-size:.84rem; }
+  .nutri .row.active { outline:2px solid var(--amber); background: var(--amber-soft); }
+  .nutri .row.active .when { color: var(--amber); }
+
+  .avoid-list { display:flex; flex-direction:column; gap:8px; }
+  .avoid-list .a {
+    display:flex; gap:11px; align-items:flex-start; padding:10px 12px; border-radius:10px;
+    background: var(--rust-soft); border:1px solid var(--line-soft);
+  }
+  .avoid-list .ic { flex:none; font-size:1.05rem; margin-top:1px; }
+  .avoid-list .t { font-weight:600; font-size:.9rem; }
+  .avoid-list .d { color: var(--ink-soft); font-size:.82rem; }
+  .good-list .g { background: var(--sage-soft); }
+
+  /* ===== Budget ===== */
+  .budget table { width:100%; border-collapse: collapse; font-size:.9rem; }
+  .budget th, .budget td { text-align:left; padding:9px 8px; border-bottom:1px solid var(--line-soft); }
+  .budget th { font-size:.76rem; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); font-weight:700; }
+  .budget td.num { text-align:right; font-variant-numeric: tabular-nums; }
+  .budget input.money {
+    width:120px; text-align:right; font-family:inherit; font-size:.9rem; font-variant-numeric:tabular-nums;
+    padding:5px 8px; border:1px solid var(--line); border-radius:8px; background:var(--surface-2); color:var(--ink);
+  }
+  .budget .cat { color: var(--muted); font-size:.78rem; }
+  .totrow td { font-weight:800; border-top:2px solid var(--line); border-bottom:none; padding-top:12px; }
+  .net-card { display:flex; align-items:center; gap:14px; margin-top:16px; padding:16px; border-radius:12px; background:var(--surface-2); flex-wrap:wrap; }
+  .net-card .big { font-family:var(--font-serif); font-size:1.8rem; font-weight:600; font-variant-numeric:tabular-nums; }
+  .net-card.pos .big { color: var(--sage); }
+  .net-card.neg .big { color: var(--rust); }
+  .net-card .lbl { color: var(--ink-soft); font-size:.9rem; }
+  .subhead { font-weight:700; font-size:.82rem; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.03em; margin:6px 0 2px; }
+
+  /* ===== News ===== */
+  .news-grid { display:grid; grid-template-columns: repeat(2,1fr); gap:10px; }
+  @media (max-width:640px){ .news-grid { grid-template-columns:1fr; } }
+  .news-grid a.newslink {
+    display:flex; align-items:center; gap:10px; padding:12px 14px; border-radius:12px;
+    background: var(--sky-soft); border:1px solid var(--line-soft); color: var(--ink); font-size:.9rem; font-weight:600;
+  }
+  .news-grid a.newslink:hover { text-decoration:none; border-color: var(--sky); }
+  .news-grid a.newslink .arr { margin-left:auto; color: var(--sky); }
+  .src-line { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+  .src-line a { font-size:.82rem; background:var(--surface-2); border:1px solid var(--line-soft); padding:5px 11px; border-radius:999px; color:var(--ink-soft); }
+
+  .footer { color: var(--muted); font-size:.8rem; text-align:center; margin-top: 40px; line-height:1.7; }
+  .disc { font-size:.78rem; color:var(--muted); background:var(--surface-2); border-radius:10px; padding:11px 14px; margin-top:10px; }
+
+  .partner { display:flex; gap:10px; flex-wrap:wrap; }
+  .partner .p { flex:1; min-width:180px; background:var(--surface-2); border-radius:12px; padding:14px; }
+  .partner .p b { display:block; font-size:.9rem; margin-bottom:6px; }
+  .partner .p .who { font-size:.75rem; color:var(--plum); font-weight:700; }
+</style>
+
+<div class="wrap">
+
+  <div class="topbar">
+    <div class="brand">
+      <span class="seed">🌱</span>
+      <div>
+        <b>베이비봉 대시보드</b><br>
+        <span>우리 둘이 함께 준비하는 출산 준비 노트</span>
+      </div>
+    </div>
+    <button class="theme-toggle" id="themeBtn" aria-label="테마 전환">🌗 <span id="themeLbl">테마</span></button>
+  </div>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-left">
+      <div class="eyebrow">Pregnancy week</div>
+      <div class="week-num" id="weekNum">5</div>
+      <div class="week-label" id="weekLabel">임신 5주 0일차</div>
+      <div class="trimester" id="triBadge">🌸 임신 초기 (1st trimester)</div>
+    </div>
+    <div class="hero-right">
+      <div>
+        <div class="eyebrow">출산 예정일까지</div>
+        <div class="dday-row">
+          <span class="dday" id="dday">D-245</span>
+          <span class="dday-sub" id="ddaySub">약 35주 남음</span>
+        </div>
+        <div class="edd" id="edd">예정일 · 2027년 4월 19일</div>
+      </div>
+      <div>
+        <div class="progress"><i id="progBar" style="width:12%"></i></div>
+        <div class="tri-marks"><span>초기</span><span>중기</span><span>후기</span><span>출산</span></div>
+      </div>
+      <div class="lmp-edit">
+        <label for="lmpInput">📅 마지막 생리 시작일</label>
+        <input type="date" id="lmpInput" value="2026-07-13">
+        <span>(정확히 맞추면 주차·예정일이 자동 계산돼요)</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="note">
+    💛 <b>안녕하세요, 5주차 축하드려요!</b> 이 페이지는 두 분이 함께 열어 보며 하나씩 체크하도록 만들었어요.
+    체크 상태·예산·생리 시작일은 <b>이 브라우저에 자동 저장</b>되니 편하게 눌러 보세요.
+    지원금 금액은 <b>2026년 일반 기준</b>이라, 지자체(포항·경북)·학교 항목은 실제 신청 전 꼭 공식 창구에서 확인하시길 권합니다.
+  </div>
+
+  <!-- ============ 1. 이번 단계 할 일 ============ -->
+  <section id="now">
+    <div class="sec-head">
+      <span class="dot" style="background:var(--amber)"></span>
+      <h2>지금 이 시기에 할 일</h2>
+      <span class="tag" id="nowProgress">0/8 완료</span>
+    </div>
+    <div class="card">
+      <div class="sub">임신 5~12주(초기)에 챙기면 좋은 우선순위예요. 급한 것부터 위에 두었어요.</div>
+      <ul class="check" data-progress="nowProgress">
+        <li>
+          <input type="checkbox" id="n1"><label for="n1">
+          <span class="cx">산부인과 정기 병원 정하고 다음 진료 예약</span>
+          <span class="meta">5~7주엔 아기집·심장박동을 확인해요. 다닐 병원(분만까지)을 정해두면 편해요.</span></label>
+        </li>
+        <li>
+          <input type="checkbox" id="n2"><label for="n2">
+          <span class="cx">국민행복카드 발급 + 임신·출산 진료비 바우처(100만원) 신청</span>
+          <span class="meta">병원에서 '임신확인서'를 받아 카드사 앱/은행에서 신청. 제일 먼저 챙기세요.
+          <a href="https://www.gov.kr/portal/onestopSvc/happyBirthLocalBirth" target="_blank" rel="noopener">정부24 바로가기 ↗</a></span></label>
+        </li>
+        <li>
+          <input type="checkbox" id="n3"><label for="n3">
+          <span class="cx">엽산제 매일 복용 시작 (아침 식후)</span>
+          <span class="meta">임신 12~14주까지 하루 400~800µg 필수. 아래 '먹거리' 카드 참고.</span></label>
+        </li>
+        <li>
+          <input type="checkbox" id="n4"><label for="n4">
+          <span class="cx">보건소 '맘편한 임신' 서비스 신청 (엽산·철분제·모자보건수첩)</span>
+          <span class="meta">정부24 또는 포항시 보건소에서 임신 지원을 한 번에 안내받아요.</span></label>
+        </li>
+        <li>
+          <input type="checkbox" id="n5"><label for="n5">
+          <span class="cx">술·담배 완전 중단, 카페인 하루 200mg 이하로</span>
+          <span class="meta">남편도 금연·간접흡연 주의로 함께해요.</span></label>
+        </li>
+        <li>
+          <input type="checkbox" id="n6"><label for="n6">
+          <span class="cx">복용 중인 약·영양제 산부인과에 알리고 점검</span>
+          <span class="meta">일반약·한약·고용량 비타민A는 반드시 상담 후.</span></label>
+        </li>
+        <li>
+          <input type="checkbox" id="n7"><label for="n7">
+          <span class="cx">학교(POSTECH) 임신·출산 관련 제도 확인 + 지도교수 면담 계획</span>
+          <span class="meta">임신·출산·육아 휴학(여학생 최대 4학기) 등. 연구실 유해물질 노출도 점검.</span></label>
+        </li>
+        <li>
+          <input type="checkbox" id="n8"><label for="n8">
+          <span class="cx">부부 예산 계획 한 번 훑어보기</span>
+          <span class="meta">아래 '예산' 카드에서 지원금과 예상 지출을 같이 넣어봐요.</span></label>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ============ 2. 제도·지원 ============ -->
+  <section id="support">
+    <div class="sec-head">
+      <span class="dot" style="background:var(--plum)"></span>
+      <h2>제도·지원 챙기기</h2>
+      <span class="tag" id="supProgress">0/? 완료</span>
+    </div>
+
+    <div class="tabs" role="tablist" aria-label="지원 주체">
+      <button role="tab" aria-selected="true" aria-controls="tab-gov" id="t-gov">🏛️ 정부(전국)</button>
+      <button role="tab" aria-selected="false" aria-controls="tab-local" id="t-local">📍 지자체(포항·경북)</button>
+      <button role="tab" aria-selected="false" aria-controls="tab-school" id="t-school">🎓 학교(POSTECH)</button>
+    </div>
+
+    <!-- GOV -->
+    <div class="card tabpanel" id="tab-gov" role="tabpanel" aria-labelledby="t-gov">
+      <ul class="check" data-progress="supProgress">
+        <li><input type="checkbox" id="g1"><label for="g1">
+          <span class="item-row"><span class="cx">임신·출산 진료비 바우처</span><span class="pill now">지금</span></span>
+          <span class="meta">국민행복카드로 <b>단태아 100만원 / 다태아 140만원</b>. 진료비·약값에 사용. 임신확인 즉시 신청.</span></label></li>
+        <li><input type="checkbox" id="g2"><label for="g2">
+          <span class="item-row"><span class="cx">맘편한 임신 원스톱 서비스</span><span class="pill now">지금</span></span>
+          <span class="meta">엽산제·철분제, 표준모자보건수첩, 각종 임신 지원을 한 번에.
+          <a href="https://www.gov.kr" target="_blank" rel="noopener">정부24 ↗</a></span></label></li>
+        <li><input type="checkbox" id="g3"><label for="g3">
+          <span class="item-row"><span class="cx">임산부 배려 엠블럼</span><span class="pill soon">가능</span></span>
+          <span class="meta">보건소에서 수령. 대중교통 배려석 이용에 도움.</span></label></li>
+        <li><input type="checkbox" id="g4"><label for="g4">
+          <span class="item-row"><span class="cx">첫만남이용권</span><span class="pill later">출생 후</span></span>
+          <span class="meta">첫째 <b>200만원</b>(둘째 이상 300만원) 바우처. 산후조리원·육아용품 등.</span></label></li>
+        <li><input type="checkbox" id="g5"><label for="g5">
+          <span class="item-row"><span class="cx">부모급여</span><span class="pill later">출생 후</span></span>
+          <span class="meta">만 0세 <b>월 100만원</b>, 만 1세 월 50만원.</span></label></li>
+        <li><input type="checkbox" id="g6"><label for="g6">
+          <span class="item-row"><span class="cx">아동수당</span><span class="pill later">출생 후</span></span>
+          <span class="meta">만 8세 미만 <b>월 10만원</b>. 별도 신청 필요.</span></label></li>
+        <li><input type="checkbox" id="g7"><label for="g7">
+          <span class="item-row"><span class="cx">부모 각각의 육아휴직급여 확인</span><span class="pill later">출산 전후</span></span>
+          <span class="meta">부부가 함께 챙길 것. 회사·고용센터 통해 조건·기간 확인.</span></label></li>
+        <li><input type="checkbox" id="g8"><label for="g8">
+          <span class="item-row"><span class="cx">행복출산 원스톱 서비스(출생신고 시)</span><span class="pill later">출생 후</span></span>
+          <span class="meta">첫만남·부모급여·아동수당·지자체 지원을 한 번에 신청.</span></label></li>
+      </ul>
+    </div>
+
+    <!-- LOCAL -->
+    <div class="card tabpanel" id="tab-local" role="tabpanel" aria-labelledby="t-local" hidden>
+      <div class="sub">⚠️ 지자체 지원은 자주 바뀌어요. 아래는 참고용이며, <b>포항시 보건소·경상북도청</b>에서 최신 금액·조건을 꼭 확인하세요.</div>
+      <ul class="check" data-progress="supProgress">
+        <li><input type="checkbox" id="l1"><label for="l1">
+          <span class="item-row"><span class="cx">산모·신생아 건강관리 지원(건강관리사 파견)</span><span class="pill local">출산 전후</span></span>
+          <span class="meta">산후 도우미 서비스 본인부담금 지원. 소득기준·신청기한 확인.</span></label></li>
+        <li><input type="checkbox" id="l2"><label for="l2">
+          <span class="item-row"><span class="cx">경북 산후조리비 지원</span><span class="pill local">출생 후</span></span>
+          <span class="meta">관내 출생아 가정 대상. 포항시 자체 지원과 중복 여부 확인.</span></label></li>
+        <li><input type="checkbox" id="l3"><label for="l3">
+          <span class="item-row"><span class="cx">경북 출산지원금</span><span class="pill local">출생 후</span></span>
+          <span class="meta">다자녀 차등(참고: 첫째 100만·둘째 120만·셋째+ 150만). 포항시 별도 지원도 확인.</span></label></li>
+        <li><input type="checkbox" id="l4"><label for="l4">
+          <span class="item-row"><span class="cx">임산부 교통비 지원 여부 확인</span><span class="pill local">지금</span></span>
+          <span class="meta">지자체별로 있는 곳/없는 곳이 달라요. 포항시 해당 여부 문의.</span></label></li>
+        <li><input type="checkbox" id="l5"><label for="l5">
+          <span class="item-row"><span class="cx">임산부 친환경농산물 꾸러미</span><span class="pill local">지금</span></span>
+          <span class="meta">지역 시행 여부·잔여 물량 확인.</span></label></li>
+      </ul>
+      <div class="src-line">
+        <a href="https://www.gov.kr/portal/onestopSvc/happyBirthLocalBirth" target="_blank" rel="noopener">정부24 지역별 출산지원 ↗</a>
+        <a href="https://www.pohang.go.kr" target="_blank" rel="noopener">포항시청 ↗</a>
+        <a href="https://www.gb.go.kr" target="_blank" rel="noopener">경상북도청 ↗</a>
+      </div>
+    </div>
+
+    <!-- SCHOOL -->
+    <div class="card tabpanel" id="tab-school" role="tabpanel" aria-labelledby="t-school" hidden>
+      <div class="sub">POSTECH 재학 중이라면 학사 규정·상담센터를 통해 확인하세요.</div>
+      <ul class="check" data-progress="supProgress">
+        <li><input type="checkbox" id="s1"><label for="s1">
+          <span class="item-row"><span class="cx">임신·출산·육아 휴학 제도 확인</span><span class="pill school">지금</span></span>
+          <span class="meta">일반 휴학과 별도로 <b>여학생 최대 4학기 / 남학생 최대 2학기</b>. 학사팀·대학원 규정 확인.</span></label></li>
+        <li><input type="checkbox" id="s2"><label for="s2">
+          <span class="item-row"><span class="cx">지도교수·연구실 일정 상담</span><span class="pill school">지금</span></span>
+          <span class="meta">연구·실험 일정 조정, 출산 시기 대비 계획을 미리 공유.</span></label></li>
+        <li><input type="checkbox" id="s3"><label for="s3">
+          <span class="item-row"><span class="cx">실험실 유해물질·방사선 노출 점검</span><span class="pill school">지금</span></span>
+          <span class="meta">화학약품·방사선·중량물 취급 등 임신 중 위험요소를 안전관리팀과 점검.</span></label></li>
+        <li><input type="checkbox" id="s4"><label for="s4">
+          <span class="item-row"><span class="cx">학내 상담센터·건강센터 이용</span><span class="pill school">필요 시</span></span>
+          <span class="meta">심리 상담·건강 상담, 교내 지원 프로그램 문의.</span></label></li>
+        <li><input type="checkbox" id="s5"><label for="s5">
+          <span class="item-row"><span class="cx">장학·등록금·기숙사 관련 규정 확인</span><span class="pill school">필요 시</span></span>
+          <span class="meta">휴학 시 장학금 유지·등록·거주 관련 사항을 학사팀에 확인.</span></label></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ============ 3. 먹거리 ============ -->
+  <section id="food">
+    <div class="sec-head">
+      <span class="dot" style="background:var(--sage)"></span>
+      <h2>먹거리 &amp; 영양제 가이드</h2>
+      <span class="tag">지금 시기 기준 강조</span>
+    </div>
+    <div class="grid cols-2">
+
+      <div class="card">
+        <h3>💊 영양제 타임라인</h3>
+        <div class="sub">지금 주차에 해당하는 항목이 <span style="color:var(--amber);font-weight:700">주황색</span>으로 강조돼요.</div>
+        <div class="nutri" id="nutriList">
+          <div class="row" data-from="0" data-to="14">
+            <div class="when">계획~14주</div>
+            <div><div class="name">엽산 400~800µg <span style="color:var(--sage)">← 지금 필수</span></div>
+            <div class="desc">신경관 결손 예방. 아침 식후 복용, 흡수 좋고 속 편해요. 종합비타민과 겹치면 총량 확인.</div></div>
+          </div>
+          <div class="row" data-from="0" data-to="40">
+            <div class="when">전 기간</div>
+            <div><div class="name">비타민 D</div>
+            <div class="desc">임신 전 기간 권장. 수치 낮으면 의료진과 용량 상담.</div></div>
+          </div>
+          <div class="row" data-from="12" data-to="40">
+            <div class="when">12주~</div>
+            <div><div class="name">임산부용 종합비타민(선택)</div>
+            <div class="desc">의료진 상담 후. 엽산·철분·요오드 포함 여부와 총량을 확인.</div></div>
+          </div>
+          <div class="row" data-from="14" data-to="40">
+            <div class="when">14~16주~</div>
+            <div><div class="name">철분제</div>
+            <div class="desc">보통 중기부터. 빈혈 수치에 따라 시작 시기가 달라져요 — 검진 결과로 결정.</div></div>
+          </div>
+          <div class="row" data-from="20" data-to="40">
+            <div class="when">중기~</div>
+            <div><div class="name">칼슘 · 오메가3(DHA)</div>
+            <div class="desc">뼈·치아, 태아 두뇌 발달. 식사로 부족하면 보충 상담.</div></div>
+          </div>
+        </div>
+        <div class="disc">⚠️ 고용량 비타민 A(레티놀), 한약·생약·건강기능식품은 임의 복용 금지 — 반드시 의료진과 상담하세요.</div>
+      </div>
+
+      <div class="card">
+        <h3>🚫 피해야 할 음식</h3>
+        <div class="sub">특히 임신 초기에 조심해요.</div>
+        <div class="avoid-list">
+          <div class="a"><span class="ic">🍷</span><div><div class="t">술(알코올) — 완전 금지</div><div class="d">안전한 양이 없어요. 요리술도 주의.</div></div></div>
+          <div class="a"><span class="ic">☕</span><div><div class="t">카페인 하루 200~300mg 이하</div><div class="d">커피 1~2잔 수준. 차·초콜릿·콜라·에너지음료까지 합산.</div></div></div>
+          <div class="a"><span class="ic">🐟</span><div><div class="t">날생선·큰 생선(참치·상어·황새치)</div><div class="d">기생충·리스테리아, 수은 농축 우려. 회·육회·날달걀 피하기.</div></div></div>
+          <div class="a"><span class="ic">🧀</span><div><div class="t">비살균 유제품·소프트치즈</div><div class="d">브리·카망베르·페타 등. 델리 햄·훈제연어도 리스테리아 주의.</div></div></div>
+          <div class="a"><span class="ic">🥩</span><div><div class="t">덜 익힌 고기·간요리</div><div class="d">톡소플라스마·살모넬라. 간은 비타민A 과다 주의.</div></div></div>
+        </div>
+        <div class="subhead" style="margin-top:14px">권장 — 좋은 음식</div>
+        <div class="avoid-list good-list">
+          <div class="a g"><span class="ic">🥬</span><div><div class="t">엽산 풍부한 채소</div><div class="d">시금치·브로콜리·아스파라거스·콩류.</div></div></div>
+          <div class="a g"><span class="ic">🥛</span><div><div class="t">단백질·칼슘·철분</div><div class="d">살코기·달걀(완전 익힘)·살균우유/요구르트·두부.</div></div></div>
+          <div class="a g"><span class="ic">💧</span><div><div class="t">충분한 수분·식이섬유</div><div class="d">변비 예방. 통곡물·과일·물 자주.</div></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 4. 정기검진 ============ -->
+  <section id="checkup">
+    <div class="sec-head">
+      <span class="dot" style="background:var(--sky)"></span>
+      <h2>정기검진 로드맵</h2>
+      <span class="tag">일반 일정 · 병원 안내 우선</span>
+    </div>
+    <div class="card">
+      <div class="sub">지난 검진은 회색, 다가오는 검진은 강조돼요. 실제 시기는 병원 안내를 따르세요.</div>
+      <div class="nutri" id="checkList">
+        <div class="row" data-from="5" data-to="7"><div class="when">5~7주</div><div><div class="name">아기집·심장박동 확인</div><div class="desc">초음파로 임신 확인.</div></div></div>
+        <div class="row" data-from="10" data-to="13"><div class="when">10~13주</div><div><div class="name">1차 기형아 선별(목덜미투명대 NT) + 초기 통합검사</div><div class="desc">NIPT(비침습 산전검사) 상담도 이 시기.</div></div></div>
+        <div class="row" data-from="15" data-to="18"><div class="when">15~18주</div><div><div class="name">2차 기형아검사(쿼드검사)</div><div class="desc">혈액검사로 위험도 평가.</div></div></div>
+        <div class="row" data-from="20" data-to="22"><div class="when">20~22주</div><div><div class="name">정밀(정밀구조) 초음파</div><div class="desc">태아 장기·구조 상세 확인.</div></div></div>
+        <div class="row" data-from="24" data-to="28"><div class="when">24~28주</div><div><div class="name">임신성 당뇨 검사 + 철분제 시작</div><div class="desc">빈혈 검사 병행.</div></div></div>
+        <div class="row" data-from="27" data-to="36"><div class="when">27~36주</div><div><div class="name">Tdap 백신(백일해) · 독감 예방접종</div><div class="desc">시기 맞춰 접종.</div></div></div>
+        <div class="row" data-from="28" data-to="40"><div class="when">28주~</div><div><div class="name">검진 간격 좁아짐(격주→매주)</div><div class="desc">태동·혈압·체중 관리. 출산 준비물 점검.</div></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 5. 예산 ============ -->
+  <section id="budget">
+    <div class="sec-head">
+      <span class="dot" style="background:var(--amber)"></span>
+      <h2>예산 계획 (부부 함께)</h2>
+      <span class="tag">금액 직접 수정 가능 · 자동 저장</span>
+    </div>
+    <div class="card budget">
+      <div class="sub">기본값은 2026년 일반 기준 예시예요. 우리 상황에 맞게 금액을 고쳐 넣으면 합계가 실시간으로 바뀝니다.</div>
+
+      <div class="subhead">받는 지원 (수입)</div>
+      <table>
+        <thead><tr><th>항목</th><th style="text-align:right">금액(원)</th></tr></thead>
+        <tbody id="incomeBody">
+          <tr><td>임신·출산 진료비 바우처 <span class="cat">정부</span></td><td class="num"><input class="money" data-k="in1" value="1000000"></td></tr>
+          <tr><td>첫만남이용권(첫째) <span class="cat">정부</span></td><td class="num"><input class="money" data-k="in2" value="2000000"></td></tr>
+          <tr><td>부모급여 0세 12개월(월100만) <span class="cat">정부</span></td><td class="num"><input class="money" data-k="in3" value="12000000"></td></tr>
+          <tr><td>아동수당 12개월(월10만) <span class="cat">정부</span></td><td class="num"><input class="money" data-k="in4" value="1200000"></td></tr>
+          <tr><td>지자체 출산지원금 <span class="cat">포항·경북</span></td><td class="num"><input class="money" data-k="in5" value="1000000"></td></tr>
+          <tr><td>산후조리비/도우미 지원 <span class="cat">지자체</span></td><td class="num"><input class="money" data-k="in6" value="1000000"></td></tr>
+        </tbody>
+        <tfoot><tr class="totrow"><td>지원 합계</td><td class="num" id="incomeTot">0</td></tr></tfoot>
+      </table>
+
+      <div class="subhead" style="margin-top:18px">예상 지출</div>
+      <table>
+        <thead><tr><th>항목</th><th style="text-align:right">금액(원)</th></tr></thead>
+        <tbody id="expenseBody">
+          <tr><td>산전 진료·검사 자기부담 <span class="cat">임신 기간</span></td><td class="num"><input class="money" data-k="ex1" value="600000"></td></tr>
+          <tr><td>분만·입원비 자기부담 <span class="cat">출산</span></td><td class="num"><input class="money" data-k="ex2" value="500000"></td></tr>
+          <tr><td>산후조리원(약 2주) <span class="cat">출산 후</span></td><td class="num"><input class="money" data-k="ex3" value="3000000"></td></tr>
+          <tr><td>출산·육아 준비물 <span class="cat">유아용품</span></td><td class="num"><input class="money" data-k="ex4" value="2500000"></td></tr>
+          <tr><td>초기 육아용품·기저귀·분유 <span class="cat">첫 몇 개월</span></td><td class="num"><input class="money" data-k="ex5" value="1500000"></td></tr>
+          <tr><td>예비비 <span class="cat">비상</span></td><td class="num"><input class="money" data-k="ex6" value="1000000"></td></tr>
+        </tbody>
+        <tfoot><tr class="totrow"><td>지출 합계</td><td class="num" id="expenseTot">0</td></tr></tfoot>
+      </table>
+
+      <div class="net-card pos" id="netCard">
+        <div>
+          <div class="lbl">지원 − 지출 (순수 부담/여유)</div>
+          <div class="big" id="netVal">0원</div>
+        </div>
+        <div class="lbl" id="netMsg" style="margin-left:auto"></div>
+      </div>
+      <div class="disc">💡 부모급여·아동수당은 출산 후 <b>매월</b> 들어오고, 육아 지출도 매월 이어져요. 위 표는 첫 1년 대략치를 한 번에 본 것이니 월 현금흐름도 따로 살펴보면 좋아요.</div>
+    </div>
+  </section>
+
+  <!-- ============ 6. 뉴스 모니터링 ============ -->
+  <section id="news">
+    <div class="sec-head">
+      <span class="dot" style="background:var(--sky)"></span>
+      <h2>임산부 좋은 소식 뉴스 모니터링</h2>
+      <span class="tag">클릭하면 최신 검색 결과로</span>
+    </div>
+    <div class="card">
+      <div class="sub">아래 버튼을 누르면 해당 키워드의 <b>최신 뉴스</b>가 새 탭에서 열려요. 즐겨찾기 해두고 주 1회 훑어보면 좋아요.</div>
+      <div class="news-grid">
+        <a class="newslink" target="_blank" rel="noopener" href="https://search.naver.com/search.naver?where=news&sm=tab_jum&sort=1&query=%EC%9E%84%EC%82%B0%EB%B6%80%20%EC%A7%80%EC%9B%90">임산부 지원 <span class="arr">↗</span></a>
+        <a class="newslink" target="_blank" rel="noopener" href="https://search.naver.com/search.naver?where=news&sm=tab_jum&sort=1&query=%EC%B6%9C%EC%82%B0%20%EC%A7%80%EC%9B%90%EA%B8%88">출산 지원금 <span class="arr">↗</span></a>
+        <a class="newslink" target="_blank" rel="noopener" href="https://search.naver.com/search.naver?where=news&sm=tab_jum&sort=1&query=%EB%B6%80%EB%AA%A8%EA%B8%89%EC%97%AC">부모급여·아동수당 <span class="arr">↗</span></a>
+        <a class="newslink" target="_blank" rel="noopener" href="https://search.naver.com/search.naver?where=news&sm=tab_jum&sort=1&query=%EC%9C%A1%EC%95%84%20%EC%A0%95%EC%B1%85">육아 정책 <span class="arr">↗</span></a>
+        <a class="newslink" target="_blank" rel="noopener" href="https://search.naver.com/search.naver?where=news&sm=tab_jum&sort=1&query=%ED%8F%AC%ED%95%AD%20%EC%B6%9C%EC%82%B0%20%EC%A7%80%EC%9B%90">포항 출산 지원 <span class="arr">↗</span></a>
+        <a class="newslink" target="_blank" rel="noopener" href="https://search.naver.com/search.naver?where=news&sm=tab_jum&sort=1&query=%EA%B2%BD%EB%B6%81%20%EC%B6%9C%EC%82%B0%20%EC%A0%95%EC%B1%85">경북 출산 정책 <span class="arr">↗</span></a>
+      </div>
+      <div class="subhead" style="margin-top:16px">공식 확인처</div>
+      <div class="src-line">
+        <a href="https://www.mohw.go.kr" target="_blank" rel="noopener">보건복지부 ↗</a>
+        <a href="https://www.gov.kr/portal/onestopSvc/happyBirthLocalBirth" target="_blank" rel="noopener">정부24 행복출산 ↗</a>
+        <a href="https://www.bokjiro.go.kr" target="_blank" rel="noopener">복지로 ↗</a>
+        <a href="https://www.pohang.go.kr" target="_blank" rel="noopener">포항시 ↗</a>
+        <a href="https://www.childcare.go.kr" target="_blank" rel="noopener">임신육아종합포털 아이사랑 ↗</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 7. 함께하기 ============ -->
+  <section id="together">
+    <div class="sec-head">
+      <span class="dot" style="background:var(--plum)"></span>
+      <h2>남편과 함께 · 마음 챙기기</h2>
+    </div>
+    <div class="card">
+      <div class="partner">
+        <div class="p"><span class="who">👫 함께</span><b>진료 동행 일정 맞추기</b>초음파·주요 검진일은 캘린더에 공유해 함께 가요.</div>
+        <div class="p"><span class="who">🧑 남편</span><b>집안일·무거운 것 담당</b>입덧·피로 시기엔 살림과 무거운 짐을 맡아주세요.</div>
+        <div class="p"><span class="who">💬 함께</span><b>주 1회 준비 미팅</b>이 대시보드를 같이 열어 체크 상태를 점검해요.</div>
+        <div class="p"><span class="who">🧘 아내</span><b>무리 금지·충분한 휴식</b>초기엔 안정이 가장 중요해요. 스트레스 줄이기.</div>
+      </div>
+      <div class="disc">이 대시보드의 의료·영양 내용은 일반 정보예요. 개인 건강 상태에 대한 판단은 <b>담당 산부인과 의료진</b>과 상의하세요.</div>
+    </div>
+  </section>
+
+  <div class="footer">
+    🌱 베이비봉 대시보드 · 2026년 기준으로 만들었어요<br>
+    지원금·제도는 바뀔 수 있으니 신청 전 공식 창구에서 최신 정보를 확인하세요. 두 분과 아기의 건강한 여정을 응원합니다.
+  </div>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var LS = "babybong_v1";
+  var store = {};
+  try { store = JSON.parse(localStorage.getItem(LS)) || {}; } catch(e){ store = {}; }
+  function save(){ try { localStorage.setItem(LS, JSON.stringify(store)); } catch(e){} }
+
+  /* ---------- Theme ---------- */
+  var root = document.documentElement, tBtn = document.getElementById("themeBtn"), tLbl = document.getElementById("themeLbl");
+  function applyTheme(t){
+    if(t==="light"||t==="dark"){ root.setAttribute("data-theme", t); } else { root.removeAttribute("data-theme"); }
+    tLbl.textContent = t==="dark" ? "다크" : t==="light" ? "라이트" : "시스템";
+  }
+  applyTheme(store.theme || "system");
+  tBtn.addEventListener("click", function(){
+    var order = ["system","light","dark"];
+    var cur = store.theme || "system";
+    var next = order[(order.indexOf(cur)+1)%3];
+    store.theme = next; save(); applyTheme(next);
+  });
+
+  /* ---------- Pregnancy dates ---------- */
+  var lmpInput = document.getElementById("lmpInput");
+  if(store.lmp){ lmpInput.value = store.lmp; }
+  function computeDates(){
+    var lmp = new Date(lmpInput.value + "T00:00:00");
+    if(isNaN(lmp)){ return; }
+    var today = new Date(); today.setHours(0,0,0,0);
+    var edd = new Date(lmp.getTime() + 280*86400000);
+    var diffDays = Math.floor((today - lmp)/86400000);
+    var week = Math.floor(diffDays/7), day = diffDays%7;
+    if(week<0){ week=0; day=0; }
+    var toEdd = Math.ceil((edd - today)/86400000);
+
+    document.getElementById("weekNum").textContent = week;
+    document.getElementById("weekLabel").textContent = "임신 " + week + "주 " + day + "일차";
+    var tri = week<14 ? "🌸 임신 초기 (1st trimester)" : week<28 ? "🌿 임신 중기 (2nd trimester)" : "🌻 임신 후기 (3rd trimester)";
+    document.getElementById("triBadge").textContent = tri;
+
+    document.getElementById("dday").textContent = toEdd>=0 ? ("D-" + toEdd) : ("D+" + (-toEdd));
+    var wksLeft = Math.max(0, Math.round(toEdd/7));
+    document.getElementById("ddaySub").textContent = toEdd>=0 ? ("약 " + wksLeft + "주 남음") : "예정일 지남";
+    document.getElementById("edd").textContent = "예정일 · " + edd.getFullYear() + "년 " + (edd.getMonth()+1) + "월 " + edd.getDate() + "일";
+
+    var pct = Math.max(0, Math.min(100, (week/40)*100));
+    document.getElementById("progBar").style.width = pct.toFixed(1) + "%";
+
+    highlightRows("nutriList", week);
+    highlightRows("checkList", week);
+  }
+  function highlightRows(id, week){
+    var rows = document.getElementById(id).querySelectorAll(".row");
+    rows.forEach(function(r){
+      var f = +r.getAttribute("data-from"), t = +r.getAttribute("data-to");
+      r.classList.toggle("active", week>=f && week<=t);
+    });
+  }
+  lmpInput.addEventListener("change", function(){ store.lmp = lmpInput.value; save(); computeDates(); });
+  computeDates();
+
+  /* ---------- Checkboxes persist + progress ---------- */
+  var boxes = document.querySelectorAll('ul.check input[type=checkbox]');
+  boxes.forEach(function(b){
+    if(store["chk_"+b.id]){ b.checked = true; }
+    b.addEventListener("change", function(){
+      store["chk_"+b.id] = b.checked; save(); updateAllProgress();
+    });
+  });
+  function updateAllProgress(){
+    // per-list progress by data-progress attr id
+    var lists = {};
+    document.querySelectorAll('ul.check[data-progress]').forEach(function(ul){
+      var key = ul.getAttribute("data-progress");
+      var bs = ul.querySelectorAll('input[type=checkbox]');
+      if(!lists[key]) lists[key] = {done:0,total:0};
+      bs.forEach(function(b){ lists[key].total++; if(b.checked) lists[key].done++; });
+    });
+    Object.keys(lists).forEach(function(key){
+      var el = document.getElementById(key);
+      if(el){ el.textContent = lists[key].done + "/" + lists[key].total + " 완료"; }
+    });
+  }
+  updateAllProgress();
+
+  /* ---------- Sub-tabs ---------- */
+  var tabBtns = document.querySelectorAll('[role=tab]');
+  tabBtns.forEach(function(btn){
+    btn.addEventListener("click", function(){
+      tabBtns.forEach(function(b){
+        var sel = b===btn;
+        b.setAttribute("aria-selected", sel);
+        document.getElementById(b.getAttribute("aria-controls")).hidden = !sel;
+      });
+    });
+  });
+
+  /* ---------- Budget ---------- */
+  var monies = document.querySelectorAll('input.money');
+  function fmt(n){ return (n||0).toLocaleString('ko-KR') + "원"; }
+  function recalc(){
+    var inc=0, exp=0;
+    monies.forEach(function(m){
+      var v = parseInt((m.value||"0").replace(/[^0-9]/g,""),10) || 0;
+      if(m.dataset.k.indexOf("in")===0) inc+=v; else exp+=v;
+    });
+    document.getElementById("incomeTot").textContent = fmt(inc);
+    document.getElementById("expenseTot").textContent = fmt(exp);
+    var net = inc - exp;
+    var card = document.getElementById("netCard");
+    document.getElementById("netVal").textContent = (net<0?"−":"") + fmt(Math.abs(net));
+    card.classList.toggle("pos", net>=0);
+    card.classList.toggle("neg", net<0);
+    document.getElementById("netMsg").textContent = net>=0
+      ? "지원으로 예상 지출을 감당하고 " + fmt(net).replace("원"," 원") + " 정도 여유가 있어요 🌱"
+      : "예상 지출이 지원보다 " + fmt(Math.abs(net)).replace("원"," 원") + " 많아요. 예비비를 준비해요.";
+  }
+  monies.forEach(function(m){
+    if(store["bud_"+m.dataset.k]!==undefined){ m.value = store["bud_"+m.dataset.k]; }
+    m.addEventListener("input", function(){ store["bud_"+m.dataset.k]=m.value; save(); recalc(); });
+  });
+  recalc();
+})();
+</script>
