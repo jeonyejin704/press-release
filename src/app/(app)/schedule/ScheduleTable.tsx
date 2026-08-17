@@ -21,12 +21,19 @@ function fmtDate(d: string | null) {
   return d ? new Date(d).toLocaleDateString("ko-KR", { year: "2-digit", month: "2-digit", day: "2-digit" }) : "-";
 }
 
+const PAGE_SIZE = 10;
+
 export function ScheduleTable({ rows }: { rows: Row[] }) {
   const router = useRouter();
   const [dates, setDates] = useState<Record<string, string>>(
     Object.fromEntries(rows.map((r) => [r.id, r.expectedPublishDate ? r.expectedPublishDate.slice(0, 10) : ""])),
   );
   const [savingAll, setSavingAll] = useState(false);
+  const [page, setPage] = useState(1);
+
+  const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pageRows = rows.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   async function save(id: string, value: string) {
     setDates((d) => ({ ...d, [id]: value }));
@@ -82,7 +89,7 @@ export function ScheduleTable({ rows }: { rows: Row[] }) {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {rows.map((r) => {
+            {pageRows.map((r) => {
               const hasDate = !!dates[r.id];
               return (
                 <tr key={r.id} className="hover:bg-slate-50">
@@ -124,6 +131,30 @@ export function ScheduleTable({ rows }: { rows: Row[] }) {
           </tbody>
         </table>
       </div>
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between gap-2 border-t border-pgray-100 px-4 py-3 text-sm">
+          <span className="text-pgray-400">
+            총 {rows.length}건 · {safePage}/{totalPages} 페이지
+          </span>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={safePage <= 1}
+              className="rounded-lg border border-pgray-200 px-3 py-1.5 hover:bg-pgray-50 disabled:opacity-40"
+            >
+              ‹ 이전
+            </button>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={safePage >= totalPages}
+              className="rounded-lg border border-pgray-200 px-3 py-1.5 hover:bg-pgray-50 disabled:opacity-40"
+            >
+              다음 ›
+            </button>
+          </div>
+        </div>
+      )}
     </Card>
   );
 }

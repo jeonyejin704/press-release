@@ -11,14 +11,17 @@ import {
 } from "@/lib/validation";
 import { REQUEST_TYPE_LABELS, type RequestType } from "@/lib/enums";
 
-export async function GET() {
+export async function GET(req: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
-  const where = isManager(user) ? {} : { applicantId: user.id };
+  const where: Record<string, unknown> = isManager(user) ? {} : { applicantId: user.id };
+  const type = new URL(req.url).searchParams.get("type");
+  if (type) where.type = type;
   const requests = await prisma.pressRequest.findMany({
     where,
     include: { applicant: { select: { name: true } } },
     orderBy: { updatedAt: "desc" },
+    take: 100,
   });
   return NextResponse.json({ requests });
 }

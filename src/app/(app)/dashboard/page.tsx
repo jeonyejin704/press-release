@@ -4,14 +4,12 @@ import { getCurrentUser, isManager } from "@/lib/session";
 import { getDashboardData, BUCKETS, type DashboardRequest } from "@/lib/dashboard";
 import { prisma } from "@/lib/prisma";
 import { Card, StatusBadge, Badge, EmptyState } from "@/components/ui";
-import { MonthlyTrend, TypePie, DepartmentBar, AdSpendTrend } from "@/components/DashboardCharts";
+import { MonthlyTrend, DepartmentBar, AdSpendTrend } from "@/components/DashboardCharts";
+import { TypeStats } from "./TypeStats";
 import { DashboardNews } from "@/components/DashboardNews";
 import { syncNaverNews } from "@/lib/news/sync";
 import { readNewsImages } from "@/lib/news/images";
-
-// 유형별 비율 도넛과 색을 맞추기 위한 팔레트(DashboardCharts COLORS 와 동일 순서)
-const PIE_COLORS = ["#a61955", "#f6a700", "#7a7772", "#cd527d", "#fcc74c", "#b7b4b0"];
-import { REQUEST_TYPE_LABELS, REQUEST_TYPES, type RequestType } from "@/lib/enums";
+import { REQUEST_TYPE_LABELS, type RequestType } from "@/lib/enums";
 
 export const dynamic = "force-dynamic";
 
@@ -61,10 +59,6 @@ export default async function DashboardPage({
 
   const rangeLabel = sp.from || sp.to ? `${sp.from ?? "처음"} ~ ${sp.to ?? "오늘"}` : "전체 기간";
   const ty = new Date().getFullYear();
-
-  // 파이 각 조각 클릭 → 연구성과는 저널 상세, 그 외는 해당 유형 목록
-  const typeLinkMap: Record<string, string> = { RESEARCH: "/dashboard/journals" };
-  for (const t of REQUEST_TYPES) if (t !== "RESEARCH") typeLinkMap[t] = `/requests?type=${t}`;
 
   return (
     <div className="space-y-7">
@@ -143,53 +137,7 @@ export default async function DashboardPage({
       )}
 
       {/* ── 2행: 유형별 건수(왼쪽) + 유형별 비율 도넛(오른쪽) ─────────── */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="flex flex-col border-t-4 border-t-brand-600 p-5">
-          <SectionTitle>홍보 유형별 신청 건수</SectionTitle>
-          {d.byType.length ? (
-            <div className="mt-1 flex flex-1 flex-col justify-center divide-y divide-pgray-100">
-              {d.byType.map((t, i) => (
-                <Link
-                  key={t.key}
-                  href={typeLinkMap[t.key] ?? `/requests?type=${t.key}`}
-                  className="flex items-center justify-between py-2.5 hover:bg-pgray-50"
-                >
-                  <span className="flex items-center gap-2">
-                    <span className="inline-block h-3 w-3 rounded-sm" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
-                    <span className="text-sm font-medium text-pgray-700">{t.label}</span>
-                  </span>
-                  <span className="text-sm text-pgray-500">
-                    <span className="font-display text-lg text-pgray-800">{t.count}</span>건
-                    <span className="ml-1.5 text-xs text-pgray-400">({t.ratio}%)</span>
-                  </span>
-                </Link>
-              ))}
-              <div className="flex items-center justify-between py-2.5">
-                <span className="text-sm font-bold text-pgray-700">합계</span>
-                <span className="text-sm text-pgray-500">
-                  <span className="font-display text-lg text-brand-700">{d.byType.reduce((s, t) => s + t.count, 0)}</span>건
-                </span>
-              </div>
-            </div>
-          ) : (
-            <EmptyState title="데이터 없음" />
-          )}
-        </Card>
-        <Card className="border-t-4 border-t-brand-600 p-5">
-          <div className="mb-1 flex items-center justify-between">
-            <div className="text-base font-bold text-pgray-900">홍보 유형별 비율</div>
-            <Link href="/requests" className="text-xs font-medium text-brand-600 hover:underline">
-              홍보 유형별 비율 상세 →
-            </Link>
-          </div>
-          <p className="mb-2 text-[11px] text-pgray-400">각 조각을 클릭하면 상세 현황을 볼 수 있어요.</p>
-          {d.byType.length ? (
-            <TypePie data={d.byType} linkMap={typeLinkMap} />
-          ) : (
-            <EmptyState title="데이터 없음" />
-          )}
-        </Card>
-      </div>
+      <TypeStats data={d.byType} />
 
       {/* ── 3행: 월별 신청 추이(왼쪽) + 학과별 신청 건수(오른쪽) ─────────── */}
       <div className="grid gap-4 lg:grid-cols-2">

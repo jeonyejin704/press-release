@@ -27,10 +27,12 @@ export function RequestForm({
   type,
   me,
   lang = "ko",
+  embedded = false,
 }: {
   type: RequestType;
   me: { name: string; email: string; department: string };
   lang?: Lang;
+  embedded?: boolean;
 }) {
   const router = useRouter();
   const tr = makeT(lang);
@@ -131,10 +133,12 @@ export function RequestForm({
   }
 
   return (
-    <div className="max-w-3xl">
-      <h1 className="text-2xl font-extrabold tracking-tight text-pgray-900">
-        {tr("form.title")} · <span className="text-brand-700">{requestTypeLabel(type, lang)}</span>
-      </h1>
+    <div className={embedded ? "" : "max-w-3xl"}>
+      {!embedded && (
+        <h1 className="text-2xl font-extrabold tracking-tight text-pgray-900">
+          {tr("form.title")} · <span className="text-brand-700">{requestTypeLabel(type, lang)}</span>
+        </h1>
+      )}
 
       {/* 안내문(줄글) */}
       <Card className="mt-3 border-l-4 border-l-accent-500 bg-accent-50 p-4">

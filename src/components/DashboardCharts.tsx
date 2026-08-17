@@ -77,12 +77,15 @@ function makeLabel() {
 export function TypePie({
   data,
   linkMap,
+  onSlice,
 }: {
   data: { key: string; label: string; count: number }[];
   linkMap?: Record<string, string>;
+  onSlice?: (key: string) => void;
 }) {
   const router = useRouter();
-  const clickable = (key: string) => linkMap && linkMap[key];
+  // onSlice가 있으면 그 콜백(팝업 열기 등)을, 없으면 linkMap 이동을 사용한다.
+  const clickable = (key: string) => !!onSlice || (linkMap && linkMap[key]);
   return (
     <ResponsiveContainer width="100%" aspect={1.35} maxHeight={400}>
       <PieChart margin={{ top: 12, right: 44, bottom: 12, left: 44 }}>
@@ -99,8 +102,10 @@ export function TypePie({
           labelLine={false}
           isAnimationActive={false}
           onClick={(entry: any) => {
-            const href = clickable(entry?.key);
-            if (href) router.push(href);
+            const key = entry?.key;
+            if (!key) return;
+            if (onSlice) { onSlice(key); return; }
+            if (linkMap && linkMap[key]) router.push(linkMap[key]);
           }}
         >
           {data.map((d, i) => (
